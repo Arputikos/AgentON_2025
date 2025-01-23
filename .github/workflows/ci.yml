@@ -12,5 +12,7 @@ jobs:
           python-version: '3.11.8'
       - run: |
           cd backend
+          mkdir -p tests
+          ls -la  # Show directory contents
           pip install -r requirements-dev.txt
-          pytest 
+          python -m pytest -v tests/  # Run pytest with verbose output and explicit directory 

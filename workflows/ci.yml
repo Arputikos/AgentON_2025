@@ -11,5 +11,5 @@ jobs:
         with:
           python-version: '3.11.8'
       - run: |
-          pip install -r requirements-dev.txt
-          pytest 
+          pip install -r Repo/requirements-dev.txt
+          pytest

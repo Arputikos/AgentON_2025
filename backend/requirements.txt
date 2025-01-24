@@ -4,5 +4,15 @@ black>=24.2.0
 isort>=5.13.2
 pre-commit>=3.6.0 
 supabase>=2.11.0
-python_dotenv==1.0.1
+python-dotenv>=1.0.0
 psycopg2-binary==2.9.10
+fastapi>=0.115.7
+websockets>=12.0
+langgraph==0.2.67
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-core>=0.1.0
+pydantic==2.10.6
+pydantic-settings>=2.1.0
+pydantic_ai==0.0.20
+langfuse==2.57.12

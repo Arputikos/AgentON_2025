@@ -7,6 +7,9 @@ from openai import OpenAI
 import openai
 import uvicorn
 from pydantic import BaseModel
+from fastapi import WebSocketDisconnect
+
+from src.objects import DEFAULT_PERSONAS, Persona
 
 load_dotenv()
 
@@ -14,15 +17,21 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI()
 
-# Add CORS middleware
+# CORS 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Your frontend URL
+    allow_origins=["http://localhost:3000"], 
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
+# obiekt zawierający konfigurację debaty -> można zmieniać wedle uznania
+class DebateConfig(BaseModel):
+    speakers: list[Persona]
+    prompt: str
+
+# prompt od użytkownika
 class PromptRequest(BaseModel):
     prompt: str
 
@@ -32,83 +41,71 @@ async def process_prompt(request: PromptRequest):
     API endpoint that processes user prompt and returns debate configuration.
     """
     try:
-        print("TESTING: ", request.prompt) 
+        print("Received prompt:", request.prompt)
+        
+        # Create debate configuration using DEFAULT_PERSONAS
+        debate_config = DebateConfig(
+            speakers=DEFAULT_PERSONAS,  # Use the predefined list
+            prompt=request.prompt,
+        )
+        
         return {
-            "status": "success",
+            "debate_config": debate_config.dict()
+        }
+        
+    except Exception as e:
+        print(f"Error processing prompt: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e),
             "debate_config": {
-                "speakers": [
-                    {
-                        "id": 1,
-                        "name": "Dr. Locus",
-                        "role": "Technology Expert", 
-                        "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-                        "stance": "Pro",
-                        "position": "top"
-                    },
-                    {
-                        "id": 2,
-                        "name": "Prof. James Wilson",
-                        "role": "Ethics Researcher",
-                        "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e", 
-                        "stance": "Con",
-                        "position": "right"
-                    },
-                    {
-                        "id": 3,
-                        "name": "Dr. Maya Patel",
-                        "role": "Industry Analyst",
-                        "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
-                        "stance": "Pro", 
-                        "position": "bottom"
-                    },
-                    {
-                        "id": 4,
-                        "name": "Prof. David Thompson",
-                        "role": "Policy Expert",
-                        "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
-                        "stance": "Con",
-                        "position": "left"
-                    }
-                ],
-                "rounds": 3,
-                "time_per_round": 300
+                "speakers": DEFAULT_PERSONAS,
+                "prompt": request.prompt,
             }
         }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
 
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):
     """
     WebSocket endpoint that handles the debate and streams responses.
     """
-    await websocket.accept()
     try:
+        await websocket.accept()
+        
         while True:
-            # Wait for user message from WebSocket
-            user_message = await websocket.receive_text()
-            print(user_message)
-            # Create a streaming request to OpenAI
-            completion = client.chat.completions.create(
-                model="gpt-4o",  # Replace with your actual model name
-                messages=[
-                    {"role": "system", "content": "You are a poem writer."},
-                    {"role": "user", "content": user_message}
-                ],
-                stream=True  # Enable streaming
-            )
+            try:
+                # Wait for user message from WebSocket
+                user_message = await websocket.receive_text()
+                print(f"Received message: {user_message}")
+                
+                # Create a streaming request to OpenAI
+                completion = client.chat.completions.create(
+                    model="gpt-4",  # Fixed model name
+                    messages=[
+                        {"role": "system", "content": "You are a poem writer."},
+                        {"role": "user", "content": user_message}
+                    ],
+                    stream=True
+                )
 
-            # Stream chunks to the WebSocket client
-            for chunk in completion:  # The new interface uses `for` to process streaming responses
-                delta = chunk.choices[0].delta
-                if delta and hasattr(delta, "content") and delta.content:
-                    print(delta.content, end="")  # Print to logs (optional)
-                    await websocket.send_text(delta.content)  # Send chunk to WebSocket client
-
+                # Stream chunks to the WebSocket client
+                for chunk in completion:
+                    delta = chunk.choices[0].delta
+                    if delta and hasattr(delta, "content") and delta.content:
+                        print(delta.content, end="")
+                        await websocket.send_text(delta.content)
+                        
+            except WebSocketDisconnect:
+                print("Client disconnected")
+                break
+            except Exception as e:
+                print(f"Error processing message: {e}")
+                await websocket.send_text(f"Error: {str(e)}")
+                
     except Exception as e:
-        print(f"Error: {e}")
-        await websocket.close()
-
+        print(f"WebSocket error: {e}")
+    
+    # No need to explicitly close - the connection is already closed
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

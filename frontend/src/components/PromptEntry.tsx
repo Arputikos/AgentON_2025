@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
+interface Speaker {
+  uuid: string;
+  name: string;
+  profession: string;
+  description: string;
+  image_url: string;
+}
+
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,25 +35,29 @@ export default function Home() {
 
       const data = await response.json();
       
-      if (data.status === 'success') {
+      if (data.debate_config && data.debate_config.speakers) {
+        const positions = ['top', 'right', 'bottom', 'left'];
+        const stances = ['Pro', 'Con', 'Pro', 'Con'];
+        
         const debateState = {
           prompt: prompt.trim(),
-          participants: data.debate_config.speakers,
-          rounds: data.debate_config.rounds,
-          timePerRound: data.debate_config.time_per_round
+          participants: data.debate_config.speakers.map((speaker: Speaker, index: number) => ({
+            id: speaker.uuid,
+            name: speaker.name,
+            role: speaker.profession,
+            avatar: speaker.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${speaker.name.toLowerCase().replace(' ', '-')}`,
+            stance: stances[index % stances.length],
+            position: positions[index % positions.length],
+          }))
         };
 
-        // Encode the state as a URL-safe string
         const stateParam = encodeURIComponent(JSON.stringify(debateState));
-        // Use the correct route path that matches your Next.js pages structure
         router.push(`/debate-room?state=${stateParam}`);
       } else {
-        console.error('Failed to initialize debate:', data.message);
-        // Handle error (you might want to show an error message to the user)
+        console.error('Failed to initialize debate: Invalid response format');
       }
     } catch (error) {
       console.error('Error initializing debate:', error);
-      // Handle error
     } finally {
       setIsLoading(false);
     }

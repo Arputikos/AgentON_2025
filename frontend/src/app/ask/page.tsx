@@ -12,7 +12,15 @@ const Chat = () => {
     websocket.current = new WebSocket("ws://localhost:8000/debate");
 
     websocket.current.onmessage = (event) => {
-      setMessages((prev) => [...prev, event.data]); // Append new message
+        console.log(event.data);
+    setMessages((prev) => {
+      if (prev.length === 0) {
+        return [event.data];
+      }
+      const newMessages = [...prev];
+      newMessages[newMessages.length - 1] += event.data;
+      return newMessages;
+    });
     };
 
     websocket.current.onerror = (error) => {
@@ -33,6 +41,7 @@ const Chat = () => {
     if (userInput.trim() && websocket.current?.readyState === WebSocket.OPEN) {
       websocket.current.send(userInput); // Send user message
       setUserInput(""); // Clear input field
+        setMessages(prev => [...prev, ""]);
     }
   };
 

@@ -10,3 +10,4 @@ pydantic_ai==0.0.20
 langfuse==2.57.12
 python_dotenv==1.0.1
 fastapi==0.99.0
+openai==1.50.0

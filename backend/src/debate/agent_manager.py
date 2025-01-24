@@ -1,7 +1,6 @@
 from typing import List, Tuple, Dict
 from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.graph import StateGraph
-from langgraph.prebuilt import CompiledStateGraph
+from langgraph.graph import StateGraph, CompiledStateGraph
 from langchain_openai import ChatOpenAI
 from .models import DebateState, Participant
 

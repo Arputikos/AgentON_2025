@@ -45,7 +45,7 @@ async def debate_websocket(websocket: WebSocket):
         debate_graph = debate_manager.create_debate_graph()
         
         # Run the debate
-        for step in debate_graph.run(state):
+        async for step in debate_graph.arun(state):
             # Send updates to frontend
             await websocket.send_json({
                 "type": "debate_update",

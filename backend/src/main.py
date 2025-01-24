@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from typing import List
 import json
-from .debate.models import DebatePrompt, DebateState
+from .debate.models import DebatePrompt, DebateState, Participant
 from .debate.agent_manager import DebateAgentManager
 
 app = FastAPI()

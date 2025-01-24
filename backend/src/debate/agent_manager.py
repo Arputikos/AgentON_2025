@@ -1,12 +1,13 @@
 from typing import List, Tuple, Dict
 from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.graph import StateGraph, Graph
+from langgraph.graph import StateGraph
+from langgraph.prebuilt import CompiledStateGraph
 from langchain_openai import ChatOpenAI
 from .models import DebateState, Participant
 
 class DebateAgentManager:
     def __init__(self, model_name: str = "deepseek-chat"):
-        self.model = ChatOpenAI(model_name=model_name)
+        self.model = ChatOpenAI(model=model_name)
         
     def create_agent_prompt(self, participant: Participant, debate_context: str) -> str:
         return f"""You are {participant.name}, {participant.background}. 
@@ -23,11 +24,23 @@ class DebateAgentManager:
         return next_idx, state.participants[next_idx]
     
     def should_continue_debate(self, state: DebateState) -> bool:
-        # Add logic to determine if debate should continue
-        # For example: number of rounds, goal achievement, etc.
         return state.round_number < 3 and not state.is_debate_finished
 
-    def create_debate_graph(self) -> Graph:
+    async def agent_speak(self, state: DebateState) -> DebateState:
+        next_idx, speaker = self.get_next_speaker(state)
+        response = await self.model.ainvoke(self.create_agent_prompt(speaker, state.topic))
+        state.conversation_history.append({"speaker": speaker.name, "message": response.content})
+        state.current_speaker_idx = next_idx
+        return state
+
+    async def summarize_round(self, state: DebateState) -> DebateState:
+        state.round_number += 1
+        return state
+
+    async def decide_continuation(self, state: DebateState) -> DebateState:
+        return state
+
+    def create_debate_graph(self) -> CompiledStateGraph:
         workflow = StateGraph(DebateState)
         
         # Add nodes for each debate phase

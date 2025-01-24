@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Crown, ArrowLeft } from 'lucide-react';
 import { useRef, useEffect } from 'react';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useSearchParams } from 'next/navigation';
 
 interface Speaker {
   id: number;
@@ -15,91 +17,31 @@ interface Speaker {
   position: string;
 }
 
-interface DebateRoomProps {
-  prompt: string;
-}
+export default function DebateRoom() {
+  const searchParams = useSearchParams();
+  const stateParam = searchParams.get('state');
+  const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
 
-export default function DebateRoom({ prompt }: DebateRoomProps) {
+  const { prompt, participants, rounds, timePerRound } = debateState || {};
+
   const [currentRound, setCurrentRound] = useState(1);
-  const [speakers] = useState<Speaker[]>([
-    {
-      id: 1,
-      name: "Dr. Sarah Chen",
-      role: "Technology Expert",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-      stance: "Pro",
-      position: "top"
-    },
-    {
-      id: 2,
-      name: "Prof. James Wilson",
-      role: "Ethics Researcher",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
-      stance: "Con",
-      position: "right"
-    },
-    {
-      id: 3,
-      name: "Dr. Maya Patel",
-      role: "Industry Analyst",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
-      stance: "Pro",
-      position: "bottom"
-    },
-    {
-      id: 4,
-      name: "Prof. David Thompson",
-      role: "Policy Expert",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
-      stance: "Con",
-      position: "left"
-    }
-  ]);
+  const { isConnected } = useWebSocket();
+
+  const speakers: Speaker[] = participants || [];
 
   const [messages, setMessages] = useState<string[]>([]);
   const [userInput, setUserInput] = useState<string>("");
-  const websocket = useRef<WebSocket | null>(null);
-
-  useEffect(() => {
-    // Initialize WebSocket connection
-    websocket.current = new WebSocket("ws://localhost:8000/debate");
-
-    websocket.current.onmessage = (event) => {
-        console.log(event.data);
-    setMessages((prev) => {
-      if (prev.length === 0) {
-        return [event.data];
-      }
-      const newMessages = [...prev];
-      newMessages[newMessages.length - 1] += event.data;
-      return newMessages;
-    });
-    };
-
-    websocket.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    websocket.current.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
-    // Cleanup WebSocket on component unmount
-    return () => {
-      websocket.current?.close();
-    };
-  }, []);
-
-  const sendMessage = () => {
-    if (userInput.trim() && websocket.current?.readyState === WebSocket.OPEN) {
-      websocket.current.send(userInput); // Send user message
-      setUserInput(""); // Clear input field
-        setMessages(prev => [...prev, ""]);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-100">
+
+        {/* Connection Status Indicator */}
+      <div className="fixed top-4 right-4">
+        <div className={`w-3 h-3 rounded-full ${
+          isConnected ? 'bg-green-500' : 'bg-red-500'
+        }`} />
+      </div>
+      
       {/* Header */}
       <header className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-6">

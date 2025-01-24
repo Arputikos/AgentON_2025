@@ -7,4 +7,5 @@ supabase>=2.11.0
 python_dotenv==1.0.1
 psycopg2-binary==2.9.10
 fastapi==0.99.0
-openai==1.50.0
+openai==1.60.1
+uvicorn==0.25.0

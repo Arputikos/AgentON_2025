@@ -1,3 +1,4 @@
+rpea_prompt = """
 # **Required Personas Extractor Agent**
 
 ---
@@ -151,3 +152,4 @@ You are the **Required Personas Extractor Agent**, tasked with identifying and d
 - **Balance viewpoints:** Select personas with complementary and opposing views to encourage tension and synthesis.
 
 ---
+"""

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
 interface Participant {
@@ -27,8 +27,11 @@ export function useParticipantStream(debateId: string | null) {
     error: null,
     topic: null
   });
+  const setupComplete = useRef(false);
 
   const handleParticipantMessage = useCallback((data: any) => {
+    if (setupComplete.current) return; // Ignore messages after setup is complete
+    
     console.log('🎭 Processing participant message:', data);
 
     switch (data.type) {
@@ -38,7 +41,7 @@ export function useParticipantStream(debateId: string | null) {
           return {
             ...prev,
             topic: data.data.topic,
-            isInitializing: false
+            isInitializing: true
           };
         });
         break;
@@ -59,12 +62,13 @@ export function useParticipantStream(debateId: string | null) {
         setStreamState(prev => ({
           ...prev,
           participants: [...prev.participants, newParticipant],
-          isInitializing: false
+          isInitializing: true
         }));
         console.log('👤 Added new participant:', newParticipant.name);
         break;
 
       case 'setup_complete':
+        setupComplete.current = true; // Mark setup as complete
         setStreamState(prev => {
           console.log('✅ Setup complete, current topic:', prev.topic);
           return {
@@ -83,10 +87,10 @@ export function useParticipantStream(debateId: string | null) {
         console.error('❌ Participant stream error:', data.message);
         break;
     }
-  }, [streamState]);
+  }, []);
 
   useEffect(() => {
-    if (!socket || !debateId || !isConnected) return;
+    if (!socket || !debateId || !isConnected || setupComplete.current) return;
 
     console.log('🔌 Connecting with debate ID:', debateId);
     
@@ -113,13 +117,15 @@ export function useParticipantStream(debateId: string | null) {
     console.log('🔌 Initialized participant stream for debate:', debateId);
 
     return () => {
-      socket.removeEventListener('message', handleMessage);
-      console.log('🔌 Cleaned up participant stream');
+      if (!setupComplete.current) { // Only cleanup if setup isn't complete
+        socket.removeEventListener('message', handleMessage);
+        console.log('🔌 Cleaned up participant stream');
+      }
     };
   }, [socket, debateId, isConnected, handleParticipantMessage]);
 
   return {
     ...streamState,
-    isComplete: !streamState.isInitializing && streamState.topic !== null
+    isComplete: setupComplete.current && streamState.topic !== null
   };
 } 

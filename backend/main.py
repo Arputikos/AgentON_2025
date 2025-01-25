@@ -270,7 +270,7 @@ async def websocket_endpoint(websocket: WebSocket):
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
             participants=personas_obj.personas,
-            current_speaker_uuid=opening_persona.uuid,
+            current_speaker_uuid="0",
             round_number=1,
             conversation_history=[opening_stmt],
             comments_history=[],

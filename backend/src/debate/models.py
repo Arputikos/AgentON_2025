@@ -1,9 +1,10 @@
+import operator
 from pydantic import BaseModel, Field
 from typing import List, Optional, TypedDict
 from datetime import datetime
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, HttpUrl, AnyHttpUrl
-from typing import Optional
+from typing import Optional, Annotated, List
 from pydantic.networks import HttpUrl
 
 # Prompt Models
@@ -35,8 +36,8 @@ class Persona(BaseModel):
     """
     uuid: str = Field(..., description="Unique identifier for the participant")
     name: str = Field(..., description="Name of the participant")
-    title: str = Field(..., description="Title of the participant")
-    image_url: str = Field(..., description="Image URL of the participant")
+    title: Optional[str] = Field(None, description="Title of the participant")
+    image_url: Optional[str] = Field(None, description="Image URL of the participant")
     description: str = Field(..., description="Background information about the participant")
     personality: str
     expertise: List[str]
@@ -76,6 +77,7 @@ Maintain this persona throughout the debate. Respond as this character would."""
 # Default personas with diverse backgrounds - można zmieniać wedle uznania - powinno być diverse
 DEFAULT_PERSONAS = [
     Persona(
+        uuid=str(uuid4()),
         name="Elon Musk",
         profession="CEO of SpaceX",
         description="Elon Musk is the CEO of SpaceX, a company that aims to colonize Mars.",
@@ -86,6 +88,7 @@ DEFAULT_PERSONAS = [
         debate_style="Technical and visionary"
     ),
     Persona(
+        uuid=str(uuid4()),
         name="Mark Zuckerberg",
         profession="CEO of Meta",
         description="Mark Zuckerberg is the CEO of Meta, a company that aims to connect the world.",
@@ -96,6 +99,7 @@ DEFAULT_PERSONAS = [
         debate_style="Technical and witty"
     ),
     Persona(
+        uuid=str(uuid4()),
         name="Bill Gates",
         profession="CEO of Microsoft",
         description="Bill Gates is the CEO of Microsoft, a company that aims to create a computer for every home and office.",
@@ -106,6 +110,7 @@ DEFAULT_PERSONAS = [
         debate_style="Technical and visionary"
     ),
     Persona(
+        uuid=str(uuid4()),
         name="Steve Jobs",
         profession="CEO of Apple",
         description="Steve Jobs is the CEO of Apple, a company that aims to create a computer for every home and office.",
@@ -169,7 +174,7 @@ class DebateState(TypedDict):
     participants: List[Persona]
     current_speaker_uuid: str  # Current uuid of the speaker of the debate
     round_number: int  # defaults handled in implementation, not type definition
-    conversation_history: List[Statement]  # Conversation history of the debate
+    conversation_history: Annotated[List[Statement], operator.add]  # Conversation history of the debate
     comments_history: List[Comment]  # Comments history of the debate
     is_debate_finished: bool  # defaults handled in implementation, not type definition
 

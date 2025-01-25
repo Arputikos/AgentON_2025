@@ -1,2 +1,5 @@
 .env*
 .venv/
+temp/
+output/
+package-lock.json

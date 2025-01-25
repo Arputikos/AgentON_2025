@@ -112,6 +112,15 @@ async def process_prompt(request: PromptRequest):
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):
     try:
+        def data_to_frontend_payload(name: str, content: str):
+            return {
+                "type": "message",
+                "data": {
+                    "name": name,
+                    "content": content
+                }
+            }
+        
         print("New WebSocket connection attempt...")
         await websocket.accept()
         print("WebSocket connection accepted")
@@ -253,22 +262,17 @@ async def websocket_endpoint(websocket: WebSocket):
         opening_agent = Agent(
             model=model,
             system_prompt=opening_agent_prompt,
-            deps_type=List[Persona],
             result_type=OpeningOutput
         )   
 
-        def data_to_frontend_payload(name: str, content: str):
-            return {
-                "type": "message",
-                "data": {
-                    "name": name,
-                    "content": content
-                }
-            }
-
         print("Opening")
 
-        opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
+        opening_user_prompt = f"Debate topic: {extrapolated_prompt} \nPersonas: {persona_list} \nWhat is the opening for this debate?"
+        opening_result = await opening_agent.run(opening_user_prompt) 
+        print(f"Opening: {opening_result.data.opening}") 
+        print(f"welcome_message: {opening_result.data.welcome_message}") 
+        print(f"topic_introduction: {opening_result.data.topic_introduction}") 
+        print(f"personas_introduction: {opening_result.data.personas_introduction}") 
 
         opening_stmt: Statement = Statement(
             uuid=str(uuid.uuid4()),

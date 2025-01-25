@@ -10,39 +10,6 @@ import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useDebateStream } from '@/hooks/useDebateStream';
 import { useParticipantStream } from '@/hooks/useParticipantStream';
-import Image from 'next/image';
-
-interface Speaker {
-  id: string;
-  name: string;
-  role: string;
-  avatar: string;
-  expertise?: string[];
-  personality?: string;
-  attitude?: string;
-  debate_style?: string;
-  position?: {
-    top: string;
-    left: string;
-    transform: string;
-  };
-}
-
-interface DebateConfig {
-  speakers: Array<{
-    uuid: string;
-    name: string;
-    title: string | null;
-    image_url: string;
-    description: string;
-    personality: string;
-    expertise: string[];
-    attitude: string;
-    background: string;
-    debate_style: string;
-  }>;
-  prompt: string;
-}
 
 function calculatePosition(index: number, total: number) {
     const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
@@ -126,7 +93,7 @@ export default function DebateRoom() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
-              <p className="text-gray-600 mt-1">Topic: {decodeURIComponent(topic)}</p>
+              <p className="text-gray-600 mt-1">Topic: {decodeURIComponent(topic)}</p> 
             </div>
           </div>
         </div>

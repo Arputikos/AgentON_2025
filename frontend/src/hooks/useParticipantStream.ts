@@ -33,33 +33,14 @@ export function useParticipantStream(debateId: string | null) {
 
     switch (data.type) {
       case 'debate_topic':
-        setStreamState(prev => ({
-          ...prev,
-          topic: data.data.topic
-        }));
-        console.log('📝 Received debate topic:', data.data.topic);
-        break;
-
-      case 'debate_config':
-        if (data.data?.speakers) {
-          const newParticipants = data.data.speakers.map((speaker: any) => ({
-            id: speaker.uuid,
-            name: speaker.name,
-            role: speaker.title || speaker.expertise?.join(', ') || 'Expert',
-            avatar: speaker.image_url,
-            expertise: speaker.expertise,
-            personality: speaker.personality,
-            attitude: speaker.attitude,
-            debate_style: speaker.debate_style
-          }));
-
-          setStreamState(prev => ({
+        setStreamState(prev => {
+          console.log('📝 Setting topic:', data.data.topic);
+          return {
             ...prev,
-            participants: newParticipants,
+            topic: data.data.topic,
             isInitializing: false
-          }));
-          console.log('👥 Added initial participants:', newParticipants.length);
-        }
+          };
+        });
         break;
 
       case 'persona':
@@ -84,11 +65,13 @@ export function useParticipantStream(debateId: string | null) {
         break;
 
       case 'setup_complete':
-        setStreamState(prev => ({
-          ...prev,
-          isInitializing: false
-        }));
-        console.log('✅ Participant streaming complete');
+        setStreamState(prev => {
+          console.log('✅ Setup complete, current topic:', prev.topic);
+          return {
+            ...prev,
+            isInitializing: false
+          };
+        });
         break;
 
       case 'error':
@@ -100,10 +83,16 @@ export function useParticipantStream(debateId: string | null) {
         console.error('❌ Participant stream error:', data.message);
         break;
     }
-  }, []);
+  }, [streamState]);
 
   useEffect(() => {
     if (!socket || !debateId || !isConnected) return;
+
+    console.log('🔌 Connecting with debate ID:', debateId);
+    
+    socket.send(JSON.stringify({
+      debate_id: debateId.replace(/"/g, '')
+    }));
 
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -121,11 +110,6 @@ export function useParticipantStream(debateId: string | null) {
 
     socket.addEventListener('message', handleMessage);
 
-    socket.send(JSON.stringify({
-      type: 'join_debate',
-      debate_id: debateId
-    }));
-
     console.log('🔌 Initialized participant stream for debate:', debateId);
 
     return () => {
@@ -136,6 +120,6 @@ export function useParticipantStream(debateId: string | null) {
 
   return {
     ...streamState,
-    isComplete: !streamState.isInitializing && !streamState.error
+    isComplete: !streamState.isInitializing && streamState.topic !== null
   };
 } 

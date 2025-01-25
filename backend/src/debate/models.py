@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
+from uuid import UUID, uuid4
+from pydantic import BaseModel, Field, HttpUrl, AnyHttpUrl
+from typing import Optional
+from pydantic.networks import HttpUrl
 
 # Prompt Models
 class BasePrompt(BaseModel):
@@ -24,6 +28,7 @@ class ExtrapolatedPrompt(Prompt):
     suggested_participants: Optional[List[str]] = Field(default=None, description="Suggested debate participants")
 
 # Participants, personae
+# persona powinna być generowana przez agenta który researchuje osoby które pasują do debaty na podstawie promptu
 class Persona(BaseModel):
     """
     Persona of the participant in the debate, participant profile.
@@ -33,6 +38,47 @@ class Persona(BaseModel):
     title: str = Field(..., description="Title of the participant")
     image_url: str = Field(..., description="Image URL of the participant")
     description: str = Field(..., description="Background information about the participant")
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        if not self.image_url:
+            self.image_url = self.get_image_url(self.name)
+
+    def get_image_url(self, name: str) -> str:
+        """Query for a person's image based on their name using DiceBear API."""
+        try:
+            encoded_name = name.replace(" ", "-").lower()
+            return f"https://api.dicebear.com/7.x/avataaars/svg?seed={encoded_name}"
+        except Exception:
+            return f"https://ui-avatars.com/api/?background=random&name={name.replace(' ', '+')}"
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+# Default personas with diverse backgrounds - można zmieniać wedle uznania - powinno być diverse
+DEFAULT_PERSONAS = [
+    Persona(
+        name="Elon Musk",
+        profession="CEO of SpaceX",
+        description="Elon Musk is the CEO of SpaceX, a company that aims to colonize Mars.",
+    ),
+    Persona(
+        name="Mark Zuckerberg",
+        profession="CEO of Meta",
+        description="Mark Zuckerberg is the CEO of Meta, a company that aims to connect the world.",
+    ),
+    Persona(
+        name="Bill Gates",
+        profession="CEO of Microsoft",
+        description="Bill Gates is the CEO of Microsoft, a company that aims to create a computer for every home and office.",
+    ),
+    Persona(
+        name="Steve Jobs",
+        profession="CEO of Apple",
+        description="Steve Jobs is the CEO of Apple, a company that aims to create a computer for every home and office.",
+    )
+]
 
 class Coordinator(BaseModel):
     """
@@ -45,6 +91,21 @@ class Commentator(BaseModel):
     Commentator of the debate, expert profile.
     """
     uuid: str = Field(..., description="Unique identifier for the commentator")
+
+class Moderator(BaseModel):
+    """
+    Moderator of the debate, moderator profile.
+    """
+    uuid: str = Field(..., description="Unique identifier for the moderator")
+
+# obiekt zawierający konfigurację debaty -> można zmieniać wedle uznania
+class DebateConfig(BaseModel):
+    speakers: list[Persona]
+    prompt: str
+
+# prompt od użytkownika
+class PromptRequest(BaseModel):
+    prompt: str
 
 # Statements of the participants
 class Statement(BaseModel):

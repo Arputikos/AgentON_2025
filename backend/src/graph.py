@@ -22,6 +22,13 @@ from src.debate.prompts_models import CoordinatorOutput
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.commentator import commentator_prompt
 
+from pydantic import BaseModel
+
+class DebateContext(BaseModel):
+    topic: str
+    participants: List[dict]
+    conversation_history: str
+
 def format_conversation(conversation_history: List[Statement]) -> str:
     return "\n\n".join([
         f"person: {statement.persona_uuid}:\n{statement.content}"
@@ -165,7 +172,7 @@ async def participant_agent(state: DebateState):
         debate_agent = Agent(
             model=model,
             system_prompt=persona.system_prompt,
-            deps_type=build_debate_context(state),
+            deps_type=DebateContext,
         )   
         return debate_agent
     
@@ -176,7 +183,12 @@ async def participant_agent(state: DebateState):
     conversation_history = format_conversation(state["conversation_history"])
 
     agent = create_agent(current_speaker_uuid)
-    agent_response = await agent.run(f"You are now speaking in the debate in the following context: {conversation_history}")
+    context = DebateContext(
+        topic=state["topic"],
+        participants=[{"name": p.name} for p in state["participants"]],
+        conversation_history=conversation_history
+    )
+    agent_response = await agent.run(f"You are now speaking in the debate", deps=context)
 
     statement : Statement = Statement(
             uuid=str(uuid4()),

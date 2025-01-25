@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket
@@ -25,10 +26,15 @@ from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
 from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningPrompt, ModeratorOutput, CommentatorOutput
 
+from src.graph import graph, get_persona_by_uuid
+from src.debate.models import personas as const_personas
+from src.graph_run import config
+
 import json
 from pathlib import Path
 import uuid
 from typing import List
+import random
 
 
 load_dotenv()
@@ -148,6 +154,7 @@ async def websocket_endpoint(websocket: WebSocket):
         # Generate personas
         personas_result = await rpea_agent.run(extrapolated_prompt)
         personas_obj = personas_result.data
+        debate_personas = personas_obj.personas.copy()
 
 
         ###
@@ -183,21 +190,6 @@ async def websocket_endpoint(websocket: WebSocket):
         ### CLIENT HAS BEEN INITIALIZED CAN START THE DEBATE
         ###
 
-        # coordinator
-        coordinator_persona = Persona(
-            uuid=str(uuid.uuid4()),
-            name="Coordinator",
-            title="Debate manager",
-            image_url="https://ui-avatars.com/api/?name=Coordinator",
-            description="Debate coordinator",
-            system_prompt=coordinator_prompt,
-            personality="Organized and methodical",
-            expertise=["Debate management", "Process coordination"],
-            attitude="Professional and efficient",
-            background="Experienced debate coordinator",
-            debate_style="Structured and systematic"
-        )
-        personas_obj.personas.append(coordinator_persona)
         
         # moderator
         moderator_persona = Persona(
@@ -213,23 +205,8 @@ async def websocket_endpoint(websocket: WebSocket):
             background="Professional debate moderator",
             debate_style="Balanced and controlled"
         )
-        personas_obj.personas.append(moderator_persona) 
-
-        # commentator
-        commentator_persona = Persona(
-            uuid=str(uuid.uuid4()),
-            name="Commentator",
-            title="Debate commentator",
-            image_url="https://ui-avatars.com/api/?name=Commentator",
-            description="Debate commentator",
-            system_prompt=commentator_prompt,
-            personality="Insightful and articulate",
-            expertise=["Debate analysis", "Public speaking"],
-            attitude="Observant and analytical",
-            background="Expert in debate commentary",
-            debate_style="Analytical and engaging"
-        )
-        personas_obj.personas.append(commentator_persona)        
+        personas_obj.personas.append(moderator_persona)
+    
 
         # opening persona
         opening_persona = Persona(
@@ -245,7 +222,8 @@ async def websocket_endpoint(websocket: WebSocket):
             background="Specialized in debate openings",
             debate_style="Formal and welcoming"
         )
-        personas_obj.personas.append(opening_persona)
+        personas_obj.personas.append(opening_persona)   
+        personas_obj.personas.extend(const_personas)
 
         print("Personas completed")
         
@@ -281,6 +259,7 @@ async def websocket_endpoint(websocket: WebSocket):
         print("Opening")
 
         opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
+
         opening_stmt: Statement = Statement(
             uuid=str(uuid.uuid4()),
             content=opening_result.data.system_prompt,
@@ -299,42 +278,48 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         stan_debaty["conversation_history"].append(opening_stmt)
         
-        print("Loop started")
+        async def stream_graph_updates(input_messages: list[dict], config: dict):
+            async for event in graph.astream(input_messages, config=config):
+                for state_update in event.values():
+                    if not state_update:
+                        continue
+                    try:
+                        # This is what was updated in the state, not the full state
+                        last_statement = state_update["conversation_history"][-1]
+                        persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
+                        reply = {
+                            "name": persona.name,
+                            "content": last_statement.content
+                        }
+                        print(reply)
+                        await websocket.send_json(reply)
+                    except Exception as e:
+                        print(e)  # TODO: Handle this
 
-        while True:
+        while True:  # Debate loop
+            print("Debate loop started")
+            
+            personas_uuids = [persona.uuid for persona in debate_personas]
+            random.shuffle(personas_uuids)
+            # init_state = {
+            #     "participants": debate_personas,
+            #     "conversation_history": [opening_statement],
+            #     "current_speaker_uuid": "",
+            #     "participants_queue": personas_uuids,
+            #     "is_debate_finished": False
+            # }
+            init_state = stan_debaty.model_dump()
+
+            while True:  # Round loop
+                print("Round loop started")
+                await stream_graph_updates(init_state, config)
+                snapshot = graph.get_state(config)
+                if not snapshot.next:
+                    break
+            
             try:
                 pass
-# Tu powinna wjechać pętla debaty
 
-                # debate_prompt = await websocket.receive_text()
-                # print(f"Received debate prompt: {debate_prompt}")
-                
-                # completion = client.chat.completions.create(
-                #     model="gpt-4",
-                #     messages=[
-                #         {
-                #             "role": "system", 
-                #             "content": "You are a debate moderator. Keep your opening statement concise, under 100 words."
-                #         },
-                #         {
-                #             "role": "user", 
-                #             "content": f"Provide a brief opening statement for a debate on: {debate_prompt}"
-                #         }
-                #     ],
-                #     stream=True
-                # )
-
-                # print("Starting to stream response...")
-                # for chunk in completion:
-                #     if hasattr(chunk.choices[0].delta, 'content'):
-                #         content = chunk.choices[0].delta.content
-                #         if content:
-                #             #print(f"Streaming chunk: {content}")
-                #             await websocket.send_text(content)
-                
-                # Send end marker
-                # await websocket.send_text("__STREAM_END__")
-                # print("Finished streaming response")
                         
 
                 moderator_agent = Agent(

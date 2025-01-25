@@ -44,6 +44,14 @@ class CoordinatorPrompt(BaseModel):
     """
     system_prompt: str = Field(..., description="System prompt for the coordinator")
 
+class CoordinatorOutput(BaseModel):
+    """
+    Coordinator output for the debate.
+    """
+    next_speaker_uuid: UUID = Field(..., description="UUID of the next speaker")
+    question: str = Field(..., description="Question for the next speaker")
+    justification: str = Field(..., description="Justification for the question")
+
 class ModeratorOutput(BaseModel):
     """
     Moderator output for the debate.

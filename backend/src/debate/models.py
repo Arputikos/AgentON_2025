@@ -39,11 +39,11 @@ class Persona(BaseModel):
     title: Optional[str] = Field(None, description="Title of the participant")
     image_url: Optional[str] = Field(None, description="Image URL of the participant")
     description: str = Field(..., description="Background information about the participant")
-    personality: str
-    expertise: List[str]
-    attitude: str
-    background: str
-    debate_style: str
+    personality: Optional[str] = None
+    expertise: Optional[List[str]] = None
+    attitude: Optional[str] = None
+    background: Optional[str] = None
+    debate_style: Optional[str] = None
     
     def __init__(self, **data):
         super().__init__(**data)
@@ -75,7 +75,6 @@ DEFAULT_PERSONAS = [
     Persona(
         uuid=str(uuid4()),
         name="Elon Musk",
-        profession="CEO of SpaceX",
         description="Elon Musk is the CEO of SpaceX, a company that aims to colonize Mars.",
         personality="Ambitious, direct, and sometimes controversial",
         expertise=["Space Technology", "Electric Vehicles", "Entrepreneurship"],
@@ -86,7 +85,6 @@ DEFAULT_PERSONAS = [
     Persona(
         uuid=str(uuid4()),
         name="Mark Zuckerberg",
-        profession="CEO of Meta",
         description="Mark Zuckerberg is the CEO of Meta, a company that aims to connect the world.",
         personality="Ambitious, direct, and sometimes controversial",
         expertise=["Social Media", "Artificial Intelligence", "Entrepreneurship"],
@@ -97,7 +95,6 @@ DEFAULT_PERSONAS = [
     Persona(
         uuid=str(uuid4()),
         name="Bill Gates",
-        profession="CEO of Microsoft",
         description="Bill Gates is the CEO of Microsoft, a company that aims to create a computer for every home and office.",
         personality="Forward-thinking, technical, and sometimes controversial",
         expertise=["IT", "Entrepreneurship"],
@@ -108,7 +105,6 @@ DEFAULT_PERSONAS = [
     Persona(
         uuid=str(uuid4()),
         name="Steve Jobs",
-        profession="CEO of Apple",
         description="Steve Jobs is the CEO of Apple, a company that aims to create a computer for every home and office.",
         personality="Forward-thinking, technical, and sometimes controversial",
         expertise=["IT", "Entrepreneurship"],
@@ -174,6 +170,7 @@ class DebateState(TypedDict):
     conversation_history: Annotated[List[Statement], operator.add]  # Conversation history of the debate
     comments_history: List[Comment]  # Comments history of the debate
     is_debate_finished: bool  # defaults handled in implementation, not type definition
+    participants_queue: List[str]  # Queue of participants to speak
 
 # Tools
 class SearchQuery(BaseModel):

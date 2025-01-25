@@ -320,11 +320,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 if not snapshot.next:
                     break
             
+            stan_debaty = snapshot.values
+
             try:
                 pass
-
-                        
-
+        
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,

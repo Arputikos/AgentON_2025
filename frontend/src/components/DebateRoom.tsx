@@ -51,6 +51,8 @@ export default function DebateRoom() {
     });
   }, [participants]); // Only recalculate when participants array changes
 
+
+
   // Add debug logging
   useEffect(() => {
     console.log('Current participants:', participants);
@@ -89,7 +91,7 @@ export default function DebateRoom() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
-              <p className="text-gray-600 mt-1">Topic: {decodeURIComponent(topic)}</p> 
+              <p className="text-gray-600 mt-1">Topic: {topic}</p> 
             </div>
           </div>
         </div>

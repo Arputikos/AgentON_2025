@@ -97,7 +97,7 @@ export function useParticipantStream(debateId: string | null) {
               id: data.statement.uuid,
               content: data.statement.content,
               sender: data.statement.persona_uuid,
-              timestamp: new Date().toISOString(),//TODO temp
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
               isComplete: false
             }
           ]

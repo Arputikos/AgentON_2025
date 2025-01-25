@@ -4,58 +4,75 @@ from io import BytesIO
 from PIL import Image
 from uuid import uuid4
 from datetime import datetime
-from typing import List
+from typing import List, Literal
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Command
 
-from debate.models import DebateState, Statement, Persona
+from src.debate.models import DebateState, Statement, Persona
 
 
-def show_bytes_image(bytes_image):
+def save_graph_image(bytes_image, filename):
     buffer = BytesIO(bytes_image)
     
     with Image.open(buffer) as img:
-        img.save('graph.png')
+        img.save(filename)
 
 
 def opening_agent(state: DebateState):
-    message = {
-        "role": "user",
-        "content": "Hello World!"
-    }
-    return {"messages": [message]}
+    uuid = str(uuid4())
+    opening_statement = "Hello World!"
+    statement : Statement = Statement(
+            uuid=uuid,
+            content=opening_statement,
+            persona_uuid=uuid,
+            timestamp=datetime.now()
+    )
+    return {"conversation_history": [statement]}
 
 
 def summarizer(state: DebateState):
-    messages = state["messages"]
-    def summarize_message(message: dict):
+    def summarize_round(messages):
         return "summary"
-    summarized_messages = summarize_message(messages)
     
-    message = {
-        "role": "user",
-        "content": summarized_messages
-    }
-    return {"messages": [message]}
+    uuid = str(uuid4())
+    messages = state["conversation_history"]
+
+    summary = summarize_round(messages)
+    
+    statement : Statement = Statement(
+            uuid=uuid,
+            content=summary,
+            persona_uuid=uuid,
+            timestamp=datetime.now()
+    )
+    return {"conversation_history": [statement]}
 
 
-def coordinator(state: DebateState):
+def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
     def everyone_has_spoken(participants, conversation_history):
         participant_uuids = {participant.uuid for participant in participants}
-        speaker_uuids = {statement.uuid for statement in conversation_history}
+        speaker_uuids = {statement.persona_uuid for statement in conversation_history}
         return participant_uuids.issubset(speaker_uuids)
     def who_goes_next(participants: List[Persona]):
         random_participant = random.choice(participants)
         return random_participant.uuid
-    participants = state.participants
-    conversation_history = state.conversation_history
+    participants = state["participants"]
+    conversation_history = state["conversation_history"]
     
     if everyone_has_spoken(participants, conversation_history):
-        return "summarizer"
+        goto = "summarizer"
+    else:
+        goto = "participant_agent"
+
+    print(f"goto: {goto}")
 
     next_speaker = who_goes_next(participants)
-    return next_speaker
+    return Command(
+        update={"current_speaker_uuid": next_speaker},
+        goto=goto,
+    )
 
 
 def participant_agent(state: DebateState):
@@ -65,8 +82,8 @@ def participant_agent(state: DebateState):
             content = f"This is a response from agent {uuid}"        
             return content
         return mock_agent
-    next_agent_uuid = state.current_speaker_uuid
-    conversation_history = state.conversation_history
+    next_agent_uuid = state["current_speaker_uuid"]
+    conversation_history = state["conversation_history"]
 
     next_agent = get_agent_by_uuid(next_agent_uuid)
 
@@ -77,7 +94,7 @@ def participant_agent(state: DebateState):
             persona_uuid=next_agent_uuid,
             timestamp=datetime.now()
         )
-    return {"conversation_history": [statement]}
+    return {"conversation_history": [statement], "is_debate_finished": True}
 
 
 memory = MemorySaver()
@@ -88,7 +105,7 @@ graph_builder.add_node("coordinator", coordinator)
 graph_builder.add_node("summarizer", summarizer)
 graph_builder.add_node("participant_agent", participant_agent)
 graph_builder.set_entry_point("opening_agent")
-graph_builder.add_conditional_edges("opening_agent", coordinator)
+graph_builder.add_edge("opening_agent", "coordinator")
 graph_builder.add_edge("participant_agent", "coordinator")
 graph_builder.add_edge("summarizer", END)
 graph = graph_builder.compile(
@@ -97,4 +114,4 @@ graph = graph_builder.compile(
 
 
 if __name__ == "__main__":
-    show_bytes_image(graph.get_graph().draw_mermaid_png())
+    save_graph_image(graph.get_graph().draw_mermaid_png(), "graph.png")

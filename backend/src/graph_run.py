@@ -9,9 +9,10 @@ def stream_graph_updates(input_messages: list[dict], config: dict):
                 continue
             try:
                 # TODO: This is what was updated in the state, not the full state
-                print(print("stream updates"))
+                last_statement = state_update["conversation_history"][-1]
+                print(last_statement.content)
             except Exception as e:
-                raise e  # TODO: Handle this
+                print(e)  # TODO: Handle this
 
 
 config = {
@@ -25,7 +26,7 @@ config = {
 # )
 
 init_state = {  # TODO: AFAIK Graph needs this to start
-    "participants": DEFAULT_PERSONAS,
+    "participants": DEFAULT_PERSONAS[:2],
     "conversation_history": [],
     "current_speaker_uuid": DEFAULT_PERSONAS[0].uuid,
     "is_debate_finished": False

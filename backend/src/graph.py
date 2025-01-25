@@ -4,10 +4,11 @@ from io import BytesIO
 from PIL import Image
 from uuid import uuid4
 from datetime import datetime
-from typing import List
+from typing import List, Literal
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Command
 
 from src.debate.models import DebateState, Statement, Persona
 
@@ -49,10 +50,10 @@ def summarizer(state: DebateState):
     return {"conversation_history": [statement]}
 
 
-def coordinator(state: DebateState):
+def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
     def everyone_has_spoken(participants, conversation_history):
         participant_uuids = {participant.uuid for participant in participants}
-        speaker_uuids = {statement.uuid for statement in conversation_history}
+        speaker_uuids = {statement.persona_uuid for statement in conversation_history}
         return participant_uuids.issubset(speaker_uuids)
     def who_goes_next(participants: List[Persona]):
         random_participant = random.choice(participants)
@@ -61,10 +62,17 @@ def coordinator(state: DebateState):
     conversation_history = state["conversation_history"]
     
     if everyone_has_spoken(participants, conversation_history):
-        return "summarizer"
+        goto = "summarizer"
+    else:
+        goto = "participant_agent"
+
+    print(f"goto: {goto}")
 
     next_speaker = who_goes_next(participants)
-    return next_speaker
+    return Command(
+        update={"current_speaker_uuid": next_speaker},
+        goto=goto,
+    )
 
 
 def participant_agent(state: DebateState):
@@ -97,7 +105,7 @@ graph_builder.add_node("coordinator", coordinator)
 graph_builder.add_node("summarizer", summarizer)
 graph_builder.add_node("participant_agent", participant_agent)
 graph_builder.set_entry_point("opening_agent")
-graph_builder.add_conditional_edges("opening_agent", coordinator)
+graph_builder.add_edge("opening_agent", "coordinator")
 graph_builder.add_edge("participant_agent", "coordinator")
 graph_builder.add_edge("summarizer", END)
 graph = graph_builder.compile(

@@ -18,10 +18,10 @@ async def websearch(search_query: SearchQuery) -> list[WebContent]:
     """Execute web search using Exa API"""
     exa_client = Exa(api_key=settings.EXA_API_KEY)
     final_results = SearchResult(urls=[], query_id=search_query.query_id)
-    for query in search_query.queries:
+    for query in search_query.queries[:1]:
         results = SearchResult(urls=[], query_id=search_query.query_id)
         try:
-            response = exa_client.search(query, num_results=5)
+            response = exa_client.search(query, num_results=2)
             if response.results:
                 urls = [result.url for result in response.results]
                 results = SearchResult(urls=urls, query_id=search_query.query_id)

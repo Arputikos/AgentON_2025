@@ -37,3 +37,9 @@ class OpeningPrompt(BaseModel):
     Opening prompt for the debate.
     """
     system_prompt: str = Field(..., description="System prompt for the opening")
+
+class CoordinatorPrompt(BaseModel):
+    """
+    Coordinator prompt for the debate.
+    """
+    system_prompt: str = Field(..., description="System prompt for the coordinator")

@@ -167,6 +167,10 @@ async def websocket_endpoint(websocket: WebSocket):
         )
 
         # opening_agent
+        opening_agent_id = OpeningAgent(
+            model=model,
+            system_prompt=opening_agent_prompt
+        )
 
         # Send confirmation to client with persona details
         await websocket.send_json({

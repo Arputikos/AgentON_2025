@@ -12,11 +12,20 @@ interface Participant {
   debate_style?: string;
 }
 
+interface Message {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+  isComplete: boolean;
+}
+
 interface ParticipantStreamState {
   isInitializing: boolean;
   participants: Participant[];
   error: string | null;
   topic: string | null;
+  messages: Message[];
 }
 
 export function useParticipantStream(debateId: string | null) {
@@ -25,7 +34,8 @@ export function useParticipantStream(debateId: string | null) {
     isInitializing: true,
     participants: [],
     error: null,
-    topic: null
+    topic: null,
+    messages: []
   });
   const setupComplete = useRef(false);
 
@@ -76,6 +86,23 @@ export function useParticipantStream(debateId: string | null) {
             isInitializing: false
           };
         });
+        break;
+
+      case 'message':
+        setStreamState(prev => ({
+          ...prev,
+          messages: [
+            ...prev.messages,
+            {
+              id: data.statement.uuid,
+              content: data.statement.content,
+              sender: data.statement.persona_uuid,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+              isComplete: false
+            }
+          ]
+        }));
+        console.log('📝 Received message:', data.statement.content);
         break;
 
       case 'error':

@@ -8,7 +8,6 @@ import { useSearchParams } from 'next/navigation';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
-import { useDebateStream } from '@/hooks/useDebateStream';
 import { useParticipantStream } from '@/hooks/useParticipantStream';
 
 function calculatePosition(index: number, total: number) {
@@ -25,7 +24,7 @@ function calculatePosition(index: number, total: number) {
 }
 
 export default function DebateRoom() {
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState(true);
   const searchParams = useSearchParams();
   const debateId = searchParams.get('state');
   const { isConnected } = useWebSocket();
@@ -35,13 +34,14 @@ export default function DebateRoom() {
     isInitializing, 
     isComplete, 
     error: participantError,
-    topic 
+    topic,
+    messages
   } = useParticipantStream(debateId);
 
   // Memoize speaker positions calculation
   const speakers = useMemo(() => {
     if (!participants.length) return [];
-    console.log('Calculating positions for speakers:', participants.length);
+    console.log('Calculating positions for speakersusedebatestre:', participants.length);
     return participants.map((speaker, index) => {
       const position = calculatePosition(index, participants.length);
       return {
@@ -50,10 +50,6 @@ export default function DebateRoom() {
       };
     });
   }, [participants]); // Only recalculate when participants array changes
-
-  const { messages, streaming } = useDebateStream(
-    isComplete && topic ? topic : null
-  );
 
   // Add debug logging
   useEffect(() => {
@@ -127,7 +123,12 @@ export default function DebateRoom() {
                 ))
               ) : (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  {isInitializing ? 'Loading speakers...' : 'No speakers yet'}
+                  {isInitializing ? (
+                    <div className="flex flex-col items-center">
+                      <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                      <span className="text-gray-600 mt-2">Loading speakers...</span>
+                    </div>
+                  ) : 'No speakers yet'}
                 </div>
               )}
             </div>

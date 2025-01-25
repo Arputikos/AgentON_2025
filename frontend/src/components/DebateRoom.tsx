@@ -42,12 +42,23 @@ function calculatePosition(index: number, total: number) {
     };
 }
 
+// interface DebateState {
+//   prompt: string;
+//   participants: Array<{
+//     id: string;
+//     name: string;
+//     role: string;
+//     avatar: string;
+//     stance: string;
+//     position: string;
+//   }>;
+// }
+
 interface DebateRoomProps {
-  prompt: string;
-  participants: Array<Speaker>;
+  id: string;
 }
 
-export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
+export default function DebateRoom({ id }: DebateRoomProps) {
   const [showChat, setShowChat] = useState(false);
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');

@@ -2,104 +2,55 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Crown, ArrowLeft } from 'lucide-react';
-import { useRef, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+import { useSearchParams } from 'next/navigation';
+import SpeakerCard from '@/components/SpeakerCard';
+import ModeratorCard from '@/components/ModeratorCard';
+import ChatHistory from '@/components/ChatHistory';
+import { useDebateStream } from '@/hooks/useDebateStream';
+
+const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
+type Position = typeof POSITIONS[number];
 
 interface Speaker {
-  id: number;
+  id: string;
   name: string;
   role: string;
   avatar: string;
-  stance: string;
-  position: string;
+  stance?: string;
+  position?: Position;
 }
 
 interface DebateRoomProps {
   prompt: string;
+  participants: Array<Speaker>;
 }
 
-export default function DebateRoom({ prompt }: DebateRoomProps) {
-  const [currentRound, setCurrentRound] = useState(1);
-  const [speakers] = useState<Speaker[]>([
-    {
-      id: 1,
-      name: "Dr. Sarah Chen",
-      role: "Technology Expert",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-      stance: "Pro",
-      position: "top"
-    },
-    {
-      id: 2,
-      name: "Prof. James Wilson",
-      role: "Ethics Researcher",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
-      stance: "Con",
-      position: "right"
-    },
-    {
-      id: 3,
-      name: "Dr. Maya Patel",
-      role: "Industry Analyst",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80",
-      stance: "Pro",
-      position: "bottom"
-    },
-    {
-      id: 4,
-      name: "Prof. David Thompson",
-      role: "Policy Expert",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
-      stance: "Con",
-      position: "left"
-    }
-  ]);
-
-  const [messages, setMessages] = useState<string[]>([]);
+export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
+  const searchParams = useSearchParams();
+  const stateParam = searchParams.get('state');
+  const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
+  const { isConnected } = useWebSocket();
+  const { messages, streaming } = useDebateStream(prompt);
   const [userInput, setUserInput] = useState<string>("");
-  const websocket = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    // Initialize WebSocket connection
-    websocket.current = new WebSocket("ws://localhost:8000/debate");
-
-    websocket.current.onmessage = (event) => {
-        console.log(event.data);
-    setMessages((prev) => {
-      if (prev.length === 0) {
-        return [event.data];
-      }
-      const newMessages = [...prev];
-      newMessages[newMessages.length - 1] += event.data;
-      return newMessages;
-    });
-    };
-
-    websocket.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    websocket.current.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
-    // Cleanup WebSocket on component unmount
-    return () => {
-      websocket.current?.close();
-    };
-  }, []);
-
-  const sendMessage = () => {
-    if (userInput.trim() && websocket.current?.readyState === WebSocket.OPEN) {
-      websocket.current.send(userInput); // Send user message
-      setUserInput(""); // Clear input field
-        setMessages(prev => [...prev, ""]);
-    }
-  };
+  // Assign positions to speakers
+  const speakers = participants.map((speaker, index) => ({
+    ...speaker,
+    position: POSITIONS[index % POSITIONS.length] as Position
+  }));
 
   return (
     <div className="min-h-screen bg-gray-100">
+
+        {/* Connection Status Indicator */}
+      <div className="fixed top-4 right-4">
+        <div className={`w-3 h-3 rounded-full ${
+          isConnected ? 'bg-green-500' : 'bg-red-500'
+        }`} />
+      </div>
+      
       {/* Header */}
       <header className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -115,44 +66,15 @@ export default function DebateRoom({ prompt }: DebateRoomProps) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <main className="container mx-auto px-8 py-8 min-h-[calc(100vh-100px)]">
+        <div className="grid grid-cols-12 gap-8 h-full">
           {/* Moderator Panel - Left Side */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="bg-purple-100 p-3 rounded-full">
-                  <Crown className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Moderator</h3>
-                  <p className="text-gray-600">Dr. Robert Maxwell</p>
-                </div>
-              </div>
-              <div className="border-t pt-4">
-                <h4 className="font-medium text-gray-900 mb-2">Round {currentRound} Summary</h4>
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h5 className="text-sm font-semibold text-gray-700 mb-2">Key Points</h5>
-                    <ul className="text-gray-600 text-sm space-y-2">
-                      <li>• Pro side emphasizes technological benefits</li>
-                      <li>• Con side raises ethical concerns</li>
-                      <li>• Discussion focused on implementation challenges</li>
-                    </ul>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <h5 className="text-sm font-semibold text-purple-700 mb-2">Moderator Notes</h5>
-                    <p className="text-purple-600 text-sm">
-                      The debate remains civil with strong arguments from both sides. Next round will focus on practical implications.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="col-span-3">
+            <ModeratorCard />
           </div>
 
-          {/* Debate Table - Right Side */}
-          <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-8">
+          {/* Debate Table - Center */}
+          <div className="col-span-6 bg-white rounded-xl shadow-md p-8">
             <div className="relative w-full aspect-square">
               {/* Virtual Round Table */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -160,44 +82,21 @@ export default function DebateRoom({ prompt }: DebateRoomProps) {
               </div>
 
               {/* Speakers around the table */}
-              {speakers.map((speaker) => {
-                const positions = {
-                  top: "top-0 left-1/2 -translate-x-1/2",
-                  right: "right-0 top-1/2 -translate-y-1/2",
-                  bottom: "bottom-0 left-1/2 -translate-x-1/2",
-                  left: "left-0 top-1/2 -translate-y-1/2"
-                };
-
-                return (
-                  <div
-                    key={speaker.id}
-                    className={`absolute ${positions[speaker.position as keyof typeof positions]} transform transition-transform duration-300`}
-                  >
-                    <div className="bg-white rounded-xl shadow-lg p-4 w-64">
-                      <div className="flex items-center space-x-4">
-                        <div className="relative w-16 h-16">
-                          <Image
-                            src={`${speaker.avatar}?w=100&h=100&fit=crop&crop=faces`}
-                            alt={speaker.name}
-                            fill
-                            className="rounded-full object-cover border-4 border-white shadow-md"
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">{speaker.name}</h3>
-                          <p className="text-gray-600 text-sm">{speaker.role}</p>
-                          <span className={`inline-block px-3 py-1 rounded-full text-sm mt-2 ${
-                            speaker.stance === 'Pro' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {speaker.stance}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {speakers.map((speaker: Speaker) => (
+                <SpeakerCard
+                  key={speaker.id}
+                  name={speaker.name}
+                  role={speaker.role}
+                  avatar={speaker.avatar}
+                  position={speaker.position as 'top' | 'right' | 'bottom' | 'left'}
+                />
+              ))}
             </div>
+          </div>
+
+          {/* Chat History - Right Side */}
+          <div className="col-span-3">
+            <ChatHistory messages={messages} />
           </div>
         </div>
       </main>

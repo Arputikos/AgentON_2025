@@ -267,17 +267,16 @@ async def websocket_endpoint(websocket: WebSocket):
             timestamp=datetime.now()
         )
         
-        stan_debaty = DebateState({
-            "topic": extrapolated_prompt,
-            "participants": personas_obj.personas,
-            "current_speaker_uuid": opening_persona.uuid,
-            "round_number": 1,
-            "conversation_history": [],
-            "comments_history": [],
-            "is_debate_finished": False,
-            "participants_queue": [p.uuid for p in personas_obj.personas]
-        })
-        stan_debaty["conversation_history"].append(opening_stmt)
+        stan_debaty = DebateState(
+            topic=extrapolated_prompt,
+            participants=personas_obj.personas,
+            current_speaker_uuid=opening_persona.uuid,
+            round_number=1,
+            conversation_history=[opening_stmt],
+            comments_history=[],
+            is_debate_finished=False,
+            participants_queue=[]
+        )
         
         async def stream_graph_updates(input_messages: list[dict], config: dict):
             async for event in graph.astream(input_messages, config=config):
@@ -304,6 +303,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
             personas_uuids = [persona.uuid for persona in debate_personas]
             random.shuffle(personas_uuids)
+            stan_debaty["participants_queue"] = personas_uuids
             # init_state = {
             #     "participants": debate_personas,
             #     "conversation_history": [opening_statement],

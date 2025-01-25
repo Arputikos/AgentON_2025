@@ -29,6 +29,7 @@ from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPr
 from src.graph import graph, get_persona_by_uuid
 from src.graph import personas as const_personas
 from src.graph_run import config
+from langgraph.errors import GraphRecursionError
 
 import json
 from pathlib import Path
@@ -322,7 +323,12 @@ async def websocket_endpoint(websocket: WebSocket):
 
             while True:  # Round loop
                 print("Round loop started")
-                await stream_graph_updates(init_state, config)  # Remove the list wrapper
+                try:
+                    await stream_graph_updates(init_state, config)  # Remove the list wrapper
+                except GraphRecursionError as e:
+                    print(f"Hit recursion limit, breaking round loop")
+                    snapshot = graph.get_state(config)
+                    break
                 snapshot = graph.get_state(config)
                 if not snapshot.next:
                     break

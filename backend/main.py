@@ -287,7 +287,15 @@ async def websocket_endpoint(websocket: WebSocket):
                         last_statement = state_update["conversation_history"][-1]
                         persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
                         if persona:
-                            name = persona.name
+                            reply = {
+                                "type": "message",
+                                "data": {
+                                    "name": persona.name,
+                                    "content": last_statement.content
+                                    }
+                            }
+                            print(reply)
+                            await websocket.send_json(reply)
                         else:
                             print(f"Persona not found for UUID: {last_statement.persona_uuid}")
                             name = "Koordynator"
@@ -303,7 +311,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:  # Debate loop
             print("Debate loop started")
-            
+
             personas_uuids = [persona.uuid for persona in debate_personas]
             random.shuffle(personas_uuids)
             stan_debaty["participants_queue"] = personas_uuids
@@ -362,7 +370,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 break
             except Exception as e:
                 print(f"Error processing message: {str(e)}")
-                await websocket.send_text(f"Error: {str(e)}")
+                await websocket.send_json({
+                    "type": "error",
+                    "message": str(e)
+                })
         
         # komentator podsumowuje debatę
         commentator_agent = Agent(

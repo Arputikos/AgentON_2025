@@ -15,9 +15,8 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 
 from src.config import settings
-from src.debate.models import DebateState, Statement, Persona
+from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt
 from src.debate.prompts_models import CoordinatorOutput
-
 
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.commentator import commentator_prompt
@@ -62,9 +61,11 @@ commentator_agent = Agent(
         model=model,
         system_prompt=commentator_prompt
     )
+
 coordinator_agent = Agent(
     model=model,
     system_prompt=coordinator_prompt,
+    deps_type=ExtrapolatedPrompt,
     result_type=CoordinatorOutput
 )
 
@@ -139,7 +140,8 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     else:
         goto = "participant_agent"
 
-    context = format_conversation(conversation_history)
+    context_conversation = format_conversation(conversation_history)
+    context = f'Original topic of the debate: {state["extrapolated_prompt"]}. History of conversation: {context_conversation}'
     
     coordinator_output = await coordinator_agent.run(context)
     next_speaker_uuid = coordinator_output.data.next_speaker_uuid

@@ -176,6 +176,7 @@ class DebateState(TypedDict):
     comments_history: List[Comment]  # Comments history of the debate
     is_debate_finished: bool  # defaults handled in implementation, not type definition
     participants_queue: List[str]  # Queue of participants to speak
+    extrapolated_prompt: Optional[ExtrapolatedPrompt] 
 
 # Tools
 class SearchQuery(BaseModel):

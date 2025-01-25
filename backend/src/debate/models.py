@@ -44,9 +44,12 @@ class Persona(BaseModel):
     attitude: Optional[str] = None
     background: Optional[str] = None
     debate_style: Optional[str] = None
+    _system_prompt: Optional[str] = None
     
     def __init__(self, **data):
+        system_prompt = data.pop('system_prompt', None)
         super().__init__(**data)
+        self._system_prompt = system_prompt
         if not self.image_url:
             self.image_url = self.get_image_url(self.name)
 
@@ -60,11 +63,11 @@ class Persona(BaseModel):
 
     @property
     def system_prompt(self) -> str:
-        return self._system_prompt
+        return self._system_prompt or ""  # Return empty string if None
         
     @system_prompt.setter
     def system_prompt(self, value: str):
-        self._system_prompt = value 
+        self._system_prompt = value
     
     class Config:
         arbitrary_types_allowed = True

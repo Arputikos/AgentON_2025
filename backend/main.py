@@ -174,7 +174,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 "description": persona.description
             }
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
-            persona.system_prompt = prompt_result.system_prompt
+            persona.system_prompt = prompt_result.data.system_prompt
 
         while True:
             try:

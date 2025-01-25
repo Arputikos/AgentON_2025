@@ -2,23 +2,22 @@ from typing import List, Tuple, Dict
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.graph import StateGraph, CompiledStateGraph
 from langchain_openai import ChatOpenAI
-from .models import DebateState, Participant
+from .models import DebateState, Persona
 
 class DebateAgentManager:
     def __init__(self, model_name: str = "deepseek-chat"):
         self.model = ChatOpenAI(model=model_name)
         
-    def create_agent_prompt(self, participant: Participant, debate_context: str) -> str:
-        return f"""You are {participant.name}, {participant.background}. 
-        Your role in this debate is: {participant.role}
-        Your perspective is: {participant.perspective}
+    def create_agent_prompt(self, persona: Persona, debate_context: str) -> str:
+        return f"""You are {persona.name}. 
+        Your role in this debate is: {persona.title}
         
         Maintain this persona throughout the debate while staying factual and logical.
         
         Current debate context: {debate_context}
         """
     
-    def get_next_speaker(self, state: DebateState) -> Tuple[int, Participant]:
+    def get_next_speaker(self, state: DebateState) -> Tuple[int, Persona]:
         next_idx = (state.current_speaker_idx + 1) % len(state.participants)
         return next_idx, state.participants[next_idx]
     

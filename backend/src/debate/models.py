@@ -38,7 +38,13 @@ class Persona(BaseModel):
     title: str = Field(..., description="Title of the participant")
     image_url: str = Field(..., description="Image URL of the participant")
     description: str = Field(..., description="Background information about the participant")
-
+    personality: str
+    expertise: List[str]
+    attitude: str
+    background: str
+    debate_style: str
+    
+    
     def __init__(self, **data):
         super().__init__(**data)
         if not self.image_url:
@@ -52,6 +58,17 @@ class Persona(BaseModel):
         except Exception:
             return f"https://ui-avatars.com/api/?background=random&name={name.replace(' ', '+')}"
 
+    @property
+    def system_prompt(self) -> str:
+        return f"""You are {self.name}, {self.title}. 
+Your personality: {self.personality}
+Your expertise: {', '.join(self.expertise)}
+Your attitude: {self.attitude}
+Your background: {self.background}
+Your debate style: {self.debate_style}
+
+Maintain this persona throughout the debate. Respond as this character would."""
+    
     class Config:
         arbitrary_types_allowed = True
 
@@ -62,21 +79,41 @@ DEFAULT_PERSONAS = [
         name="Elon Musk",
         profession="CEO of SpaceX",
         description="Elon Musk is the CEO of SpaceX, a company that aims to colonize Mars.",
+        personality="Ambitious, direct, and sometimes controversial",
+        expertise=["Space Technology", "Electric Vehicles", "Entrepreneurship"],
+        attitude="Disruptive and forward-thinking",
+        background="Serial entrepreneur with a physics background",
+        debate_style="Technical and visionary"
     ),
     Persona(
         name="Mark Zuckerberg",
         profession="CEO of Meta",
         description="Mark Zuckerberg is the CEO of Meta, a company that aims to connect the world.",
+        personality="Ambitious, direct, and sometimes controversial",
+        expertise=["Social Media", "Artificial Intelligence", "Entrepreneurship"],
+        attitude="Disruptive and forward-thinking",
+        background="Rich spoiled kid",
+        debate_style="Technical and witty"
     ),
     Persona(
         name="Bill Gates",
         profession="CEO of Microsoft",
         description="Bill Gates is the CEO of Microsoft, a company that aims to create a computer for every home and office.",
+        personality="Forward-thinking, technical, and sometimes controversial",
+        expertise=["IT", "Entrepreneurship"],
+        attitude="Disruptive and forward-thinking",
+        background="Serial entrepreneur with a physics background",
+        debate_style="Technical and visionary"
     ),
     Persona(
         name="Steve Jobs",
         profession="CEO of Apple",
         description="Steve Jobs is the CEO of Apple, a company that aims to create a computer for every home and office.",
+        personality="Forward-thinking, technical, and sometimes controversial",
+        expertise=["IT", "Entrepreneurship"],
+        attitude="Disruptive and forward-thinking",
+        background="Serial entrepreneur with a physics background",
+        debate_style="Technical and visionary"
     )
 ]
 
@@ -85,19 +122,20 @@ class Coordinator(BaseModel):
     Coordinator of the debate, moderator profile.
     """
     uuid: str = Field(..., description="Unique identifier for the coordinator")
-
+    system_prompt: str = Field(..., description="System prompt for the coordinator")
 class Commentator(BaseModel):
     """
     Commentator of the debate, expert profile.
     """
     uuid: str = Field(..., description="Unique identifier for the commentator")
+    system_prompt: str = Field(..., description="System prompt for the commentator")
 
 class Moderator(BaseModel):
     """
     Moderator of the debate, moderator profile.
     """
     uuid: str = Field(..., description="Unique identifier for the moderator")
-
+    system_prompt: str = Field(..., description="System prompt for the moderator")
 # obiekt zawierający konfigurację debaty -> można zmieniać wedle uznania
 class DebateConfig(BaseModel):
     speakers: list[Persona]

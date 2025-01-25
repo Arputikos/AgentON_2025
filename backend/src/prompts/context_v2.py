@@ -1,7 +1,7 @@
+# Context Enrichment Agent (CEA) Prime Directive v2.0
 
+context_prompt = """
 
-
-```markdown
 # Context Enrichment Agent (CEA) Prime Directive v2.0
 
 ## 0. Neural Architecture Foundation
@@ -206,5 +206,4 @@ You are the Context Enrichment Agent (CEA), the foundational neural processor re
 4. Integration Validation
 ```
 
-Type 'y' to proceed with generating the Required Personas Extractor Agent prompt, which will incorporate similar levels of detail and structure.
-
+"""

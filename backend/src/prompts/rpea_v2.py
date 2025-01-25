@@ -1,4 +1,4 @@
-rpea_v2_prompt = """
+rpea_prompt = """
 # Required Personas Extractor Agent (RPEA) v2.0
 
 ## 0. Quantum Neural Architecture Foundation

@@ -12,10 +12,13 @@ from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERS
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
-from src.prompts.context import context_prompt
+from src.prompts.context_v2 import context_prompt
+from src.prompts.rpea_v2 import rpea_prompt
 import json
 from pathlib import Path
 import uuid
+from typing import List
+
 
 load_dotenv()
 
@@ -74,8 +77,11 @@ async def process_prompt(request: PromptRequest):
             prompt=request.prompt,
         )
         
+        class DebateID(BaseModel):
+            debate_id: uuid.UUID
+        
         # Generate unique ID for this debate session
-        debate_id = uuid.uuid4()
+        debate_id: uuid.UUID = uuid.uuid4()
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
@@ -87,7 +93,7 @@ async def process_prompt(request: PromptRequest):
         with open(config_file, "w") as f:
             json.dump(debate_config.dict(), f)
         
-        return 200
+        return debate_id
         
     except Exception as e:
         print(f"Error processing prompt: {str(e)}")
@@ -106,27 +112,52 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.accept()
         print("WebSocket connection accepted")
         
-        # Get the latest prompt and config files
-        prompt_files = list(OUTPUT_DIR.glob("debate_prompt_*.json"))
-        config_files = list(OUTPUT_DIR.glob("debate_config_*.json"))
+        # Read initial message with debate_id
+        initial_message = await websocket.receive_json()
+        debate_id = initial_message.get('debate_id')
+        if not debate_id:
+            raise ValueError("No debate_id provided in initial message")
         
-        if not prompt_files or not config_files:
-            raise ValueError("Missing debate files")
+        # Load specific debate files using debate_id
+        prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
+        config_file = OUTPUT_DIR / f"debate_config_{debate_id}.json"
+        
+        if not prompt_file.exists() or not config_file.exists():
+            raise ValueError(f"Debate files not found for id: {debate_id}")
             
-        latest_prompt_file = max(prompt_files, key=os.path.getctime)
-        latest_config_file = max(config_files, key=os.path.getctime)
-        
         # Load and deserialize the prompt and config
-        with open(latest_prompt_file) as f:
+        with open(prompt_file) as f:
             prompt_data = json.load(f)
             extrapolated_prompt = ExtrapolatedPrompt(**prompt_data)
             
-        with open(latest_config_file) as f:
+        with open(config_file) as f:
             config_data = json.load(f)
             debate_config = DebateConfig(**config_data)
             
         print(f"Loaded debate prompt: {extrapolated_prompt}")
         print(f"Loaded debate config: {debate_config}")
+        
+        # Create the Required Personas Extractor Agent
+        rpea_agent = Agent(
+            model=model,
+            system_prompt=rpea_prompt
+        )
+        
+        user_prompt = extrapolated_prompt.prompt
+
+        # Generate personas
+        personas = await rpea_agent.run(user_prompt)
+
+        # convert the personas output to Persona objects
+        # TODO: fix this
+        personas = [Persona(**persona) for persona in personas]
+ 
+        # Send confirmation to client
+        await websocket.send_json({
+            "status": "success",
+            "message": "Personas generated",
+            "count": len(personas)
+        })
         
         while True:
             try:

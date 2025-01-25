@@ -268,39 +268,42 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         
         stan_debaty = DebateState(
-            topic = extrapolated_prompt,
-            participants = personas_obj.personas,
-            current_speaker_uuid = opening_persona.uuid,
-            round_number = 1,
-            conversation_history = [],
-            comments_history = [],
-            is_debate_finished = False
+            topic=extrapolated_prompt,
+            participants=personas_obj.personas,
+            current_speaker_uuid=opening_persona.uuid,
+            round_number=1,
+            conversation_history=[opening_stmt],
+            comments_history=[],
+            is_debate_finished=False,
+            participants_queue=[]
         )
-        stan_debaty.conversation_history.append(opening_stmt)
         
-        async def stream_graph_updates(input_messages: list[dict], config: dict):
+        async def stream_graph_updates(input_messages: list[dict], config: dict):            
             async for event in graph.astream(input_messages, config=config):
                 for state_update in event.values():
                     if not state_update:
                         continue
                     try:
-                        # This is what was updated in the state, not the full state
                         last_statement = state_update["conversation_history"][-1]
                         persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
-                        reply = {
-                            "name": persona.name,
-                            "content": last_statement.content
-                        }
-                        print(reply)
-                        await websocket.send_json(reply)
+                        if persona:
+                            reply = {
+                                "name": persona.name,
+                                "content": last_statement.content
+                            }
+                            print(reply)
+                            await websocket.send_json(reply)
+                        else:
+                            print(f"Persona not found for UUID: {last_statement.persona_uuid}")
                     except Exception as e:
-                        print(e)  # TODO: Handle this
+                        print(e)
 
         while True:  # Debate loop
             print("Debate loop started")
             
             personas_uuids = [persona.uuid for persona in debate_personas]
             random.shuffle(personas_uuids)
+            stan_debaty["participants_queue"] = personas_uuids
             # init_state = {
             #     "participants": debate_personas,
             #     "conversation_history": [opening_statement],
@@ -308,24 +311,24 @@ async def websocket_endpoint(websocket: WebSocket):
             #     "participants_queue": personas_uuids,
             #     "is_debate_finished": False
             # }
-            init_state = stan_debaty.model_dump()
+            init_state = dict(stan_debaty)
 
             while True:  # Round loop
                 print("Round loop started")
-                await stream_graph_updates(init_state, config)
+                await stream_graph_updates([init_state], config)  # Wrap init_state in a list
                 snapshot = graph.get_state(config)
                 if not snapshot.next:
                     break
             
+            stan_debaty = snapshot.values
+
             try:
                 pass
-
-                        
-
+        
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,
-                    deps_type=DebateState,
+                    deps_type=dict,
                     result_type=ModeratorOutput
                 )
                 moderator_result = await moderator_agent.run("Is the debate finished?", deps=stan_debaty)
@@ -362,7 +365,7 @@ async def websocket_endpoint(websocket: WebSocket):
         commentator_agent = Agent(
             model=model,
             system_prompt=commentator_prompt,
-            deps_type=DebateState,
+            deps_type=dict,
             result_type=CommentatorOutput
         )
         commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)

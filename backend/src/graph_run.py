@@ -16,10 +16,7 @@ async def stream_graph_updates(input_messages: list[dict], config: dict):
                 print(e)  # TODO: Handle this
 
 
-config = {
-    "configurable": {
-        "thread_id": "1"  # TODO: This can be id of the round
-    }}
+config = {"configurable": {"thread_id": "1", "checkpoint_ns": ""}}
 
 example_init_state = {   # Dictionary representation of DebateState
     "participants": DEFAULT_PERSONAS[:2],

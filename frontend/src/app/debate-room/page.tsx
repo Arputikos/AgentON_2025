@@ -2,7 +2,7 @@
 
 import DebateRoom from '@/components/DebateRoom';
 import { useSearchParams } from 'next/navigation';
-import Head from 'next/head';
+import { useEffect } from 'react';
 
 interface DebateState {
   prompt: string;
@@ -20,6 +20,13 @@ export default function DebatePage() {
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');
   
+  useEffect(() => {
+    if (stateParam) {
+      const debateState: DebateState = JSON.parse(decodeURIComponent(stateParam));
+      document.title = `Debate: ${debateState.prompt} | Debate Arena`;
+    }
+  }, [stateParam]);
+
   if (!stateParam) {
     return <div>Error: No debate configuration found</div>;
   }
@@ -27,14 +34,9 @@ export default function DebatePage() {
   const debateState: DebateState = JSON.parse(decodeURIComponent(stateParam));
 
   return (
-    <>
-      <Head>
-        <title>{`Debate: ${debateState.prompt} | Debate Arena`}</title>
-      </Head>
-      <DebateRoom 
-        prompt={debateState.prompt}
-        participants={debateState.participants}
-      />
-    </>
+    <DebateRoom 
+      prompt={debateState.prompt}
+      participants={debateState.participants}
+    />
   );
 }

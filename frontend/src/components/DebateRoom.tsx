@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Crown, ArrowLeft } from 'lucide-react';
-import { useRef, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useSearchParams } from 'next/navigation';
 import SpeakerCard from '@/components/SpeakerCard';
@@ -19,25 +17,26 @@ interface Speaker {
   name: string;
   role: string;
   avatar: string;
-  position?: Position;
   stance?: string;
+  position?: Position;
 }
 
-export default function DebateRoom() {
+interface DebateRoomProps {
+  prompt: string;
+  participants: Array<Speaker>;
+}
+
+export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');
   const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
-
-  const { prompt, participants = [], rounds, timePerRound } = debateState || {};
+  const { isConnected } = useWebSocket();
 
   // Assign positions to speakers
-  const speakers = participants.map((speaker: Speaker, index: number) => ({
+  const speakers = participants.map((speaker, index) => ({
     ...speaker,
     position: POSITIONS[index % POSITIONS.length] as Position
   }));
-
-  const [currentRound, setCurrentRound] = useState(1);
-  const { isConnected } = useWebSocket();
 
   const [messages, setMessages] = useState<string[]>([]);
   const [userInput, setUserInput] = useState<string>("");

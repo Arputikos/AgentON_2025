@@ -19,21 +19,13 @@ export default function ModeratorCard() {
         </div>
       </div>
       <div className="border-t pt-6">
-        <div className="space-y-6">
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h5 className="text-sm font-semibold text-gray-700 mb-3">Key Points</h5>
-            <ul className="text-gray-600 text-sm space-y-3">
-              <li>• Pro side emphasizes technological benefits</li>
-              <li>• Con side raises ethical concerns</li>
-              <li>• Discussion focused on implementation challenges</li>
-            </ul>
-          </div>
-          <div className="bg-purple-50 rounded-lg p-6">
-            <h5 className="text-sm font-semibold text-purple-700 mb-3">Moderator Notes</h5>
-            <p className="text-purple-600 text-sm">
-              The debate remains civil with strong arguments from both sides. Next round will focus on practical implications.
-            </p>
-          </div>
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h5 className="text-sm font-semibold text-gray-700 mb-3">Key Points</h5>
+          <ul className="text-gray-600 text-sm space-y-3">
+            <li>• Pro side emphasizes technological benefits</li>
+            <li>• Con side raises ethical concerns</li>
+            <li>• Discussion focused on implementation challenges</li>
+          </ul>
         </div>
       </div>
     </div>

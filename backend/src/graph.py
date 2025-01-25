@@ -123,10 +123,12 @@ async def summarizer(state: DebateState):
 
 
 async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
-    def everyone_has_spoken(participants, conversation_history):
-        participant_uuids = {participant.uuid for participant in participants}
-        speaker_uuids = {statement.persona_uuid for statement in conversation_history}
-        return participant_uuids.issubset(speaker_uuids)
+    def everyone_has_spoken(participants_queue, next_speaker_no):
+        try:
+            participants_queue[next_speaker_no]
+        except IndexError:
+            return True
+        return False
     
     participants = state["participants"]
     conversation_history = state["conversation_history"]

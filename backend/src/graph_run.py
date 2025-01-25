@@ -3,8 +3,8 @@ from src.graph import graph
 from src.debate.models import DEFAULT_PERSONAS
 
 
-def stream_graph_updates(input_messages: list[dict], config: dict):
-    for event in graph.stream(input_messages, config=config):
+async def stream_graph_updates(input_messages: list[dict], config: dict):
+    async for event in graph.astream(input_messages, config=config):
         for state_update in event.values():
             if not state_update:
                 continue
@@ -28,12 +28,10 @@ example_init_state = {   # Dictionary representation of DebateState
     "is_debate_finished": False
 }
 
-def run_graph(init_state: Dict):    
+async def run_graph(init_state: Dict):    
     while True:
-        stream_graph_updates(init_state, config)
+        await stream_graph_updates(init_state, config)
         snapshot = graph.get_state(config)
         print(f"Next: {snapshot.next}")
         if not snapshot.next:
             break
-
-

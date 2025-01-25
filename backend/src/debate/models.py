@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, TypedDict
 from datetime import datetime
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, HttpUrl, AnyHttpUrl
@@ -123,17 +123,17 @@ class Comment(Statement):
     """
     pass
     
-class DebateState(BaseModel):
+class DebateState(TypedDict):
     """
     State of the debate, including the current speaker, round number, conversation history, and whether the debate is finished.
     """
     topic: str
     participants: List[Persona]
-    current_speaker_uuid: str = Field(..., description="Current uuid of the speaker of the debate")
-    round_number: int = 1
-    conversation_history: List[Statement] = Field(..., description="Conversation history of the debate")
-    comments_history: List[Comment] = Field(..., description="Comments history of the debate")
-    is_debate_finished: bool = False 
+    current_speaker_uuid: str  # Current uuid of the speaker of the debate
+    round_number: int  # defaults handled in implementation, not type definition
+    conversation_history: List[Statement]  # Conversation history of the debate
+    comments_history: List[Comment]  # Comments history of the debate
+    is_debate_finished: bool  # defaults handled in implementation, not type definition
 
 # Tools
 class SearchQuery(BaseModel):

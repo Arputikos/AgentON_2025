@@ -1,25 +1,27 @@
 import Image from 'next/image';
 
 interface SpeakerCardProps {
-  name: string;
-  role: string;
-  avatar: string;
-  position: 'top' | 'right' | 'bottom' | 'left';
-}
-
-const positions = {
-  top: "top-0 left-1/2 -translate-x-1/2",
-  right: "right-0 top-1/2 -translate-y-1/2",
-  bottom: "bottom-0 left-1/2 -translate-x-1/2",
-  left: "left-0 top-1/2 -translate-y-1/2"
-} as const;
+    name: string;
+    role: string;
+    avatar: string;
+    position: {
+      top: string;
+      left: string;
+      transform: string;
+    };
+  }
 
 export default function SpeakerCard({ name, role, avatar, position }: SpeakerCardProps) {
   return (
     <div
-      className={`absolute ${positions[position]} transform transition-transform duration-300`}
+      className="absolute w-24 -translate-x-1/2 -translate-y-1/2"
+      style={{
+        top: position.top,
+        left: position.left,
+        transform: position.transform
+      }}
     >
-      <div className="bg-white rounded-xl shadow-lg p-4 w-64">
+      <div className="bg-white rounded-xl shadow-lg p-2 w-64">
         <div className="flex items-center space-x-4">
           <div className="relative w-16 h-16">
             <Image

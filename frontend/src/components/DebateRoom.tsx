@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -10,16 +9,37 @@ import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useDebateStream } from '@/hooks/useDebateStream';
 
-const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
-type Position = typeof POSITIONS[number];
-
 interface Speaker {
   id: string;
   name: string;
   role: string;
   avatar: string;
   stance?: string;
-  position?: Position;
+  position?: {
+    top: string;
+    left: string;
+    transform: string;
+  };
+}
+
+function calculatePosition(index: number, total: number) {
+    // Calculate angle for this speaker (in radians)
+    // Subtract π/2 to start from top (instead of right)
+    const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
+    
+    // Use exact circle radius (37.5%) to match the table's border
+    // This ensures avatars sit exactly on the circle's edge
+    const radius = 30;
+    
+    // Calculate position using trigonometry
+    const top = `${50 + radius * Math.sin(angle)}%`;
+    const left = `${40 + radius * Math.cos(angle)}%`;
+    
+    return {
+      top,
+      left,
+      transform: `translate(-50%, -50%)`
+    };
 }
 
 interface DebateRoomProps {
@@ -33,13 +53,12 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
   const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
   const { isConnected } = useWebSocket();
   const { messages, streaming } = useDebateStream(prompt);
-  const [userInput, setUserInput] = useState<string>("");
 
   // Assign positions to speakers
   const speakers = participants.map((speaker, index) => ({
     ...speaker,
-    position: POSITIONS[index % POSITIONS.length] as Position
-  }));
+    position: calculatePosition(index, participants.length)
+  }))
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -66,7 +85,7 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
         </div>
       </header>
 
-      <main className="container mx-auto px-8 py-8 min-h-[calc(100vh-100px)]">
+      <main className="container mx-auto px-4 py-8 min-h-[calc(100vh-100px)]">
         <div className="grid grid-cols-12 gap-8 h-full">
           {/* Moderator Panel - Left Side */}
           <div className="col-span-3">
@@ -84,13 +103,13 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
               {/* Speakers around the table */}
               {speakers.map((speaker: Speaker) => (
                 <SpeakerCard
-                  key={speaker.id}
-                  name={speaker.name}
-                  role={speaker.role}
-                  avatar={speaker.avatar}
-                  position={speaker.position as 'top' | 'right' | 'bottom' | 'left'}
+                    key={speaker.id}
+                    name={speaker.name}
+                    role={speaker.role}
+                    avatar={speaker.avatar}
+                    position={speaker.position}
                 />
-              ))}
+                ))}
             </div>
           </div>
 

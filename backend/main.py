@@ -8,10 +8,12 @@ import openai
 import uvicorn
 from pydantic import BaseModel
 from fastapi import WebSocketDisconnect
-from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt
+from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 # prompts
 from src.prompts.context import context_prompt
@@ -253,8 +255,24 @@ async def websocket_endpoint(websocket: WebSocket):
         )   
 
         opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
-        opening_prompt = opening_result.data.system_prompt
+        opening_stmt: Statement = Statement(
+            uuid=str(uuid.uuid4()),
+            content=opening_result.data.system_prompt,
+            persona_uuid=str(opening_persona.uuid),
+            timestamp=datetime.now()
+        )
         
+        stan_debaty = DebateState(
+            topic = extrapolated_prompt.prompt,
+            participants = personas_obj.personas,
+            current_speaker_uuid = opening_persona.uuid,
+            round_number = 1,
+            conversation_history = [],
+            comments_history = [],
+            is_debate_finished = False
+        )
+        stan_debaty["conversation_history"].append(opening_stmt)
+
         while True:
             try:
 # Tu powinna wjechać pętla debaty
@@ -286,9 +304,13 @@ async def websocket_endpoint(websocket: WebSocket):
                 #             await websocket.send_text(content)
                 
                 # Send end marker
-                await websocket.send_text("__STREAM_END__")
-                print("Finished streaming response")
+                # await websocket.send_text("__STREAM_END__")
+                # print("Finished streaming response")
                         
+
+
+                # Ocena czy koniec i ustawić zmienne w DebateState , licznik, stoper
+                     
             except WebSocketDisconnect:
                 print("Client disconnected")
                 break

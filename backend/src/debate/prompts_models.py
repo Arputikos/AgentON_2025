@@ -30,3 +30,4 @@ class PromptCrafterPrompt(BaseModel):
     persona_list: str = Field(..., description="List of personas for the debate")
     role: str = Field(..., description="Role of the persona")
     response: str = Field(..., description="Response of the persona")
+    system_prompt: str = Field(..., description="System prompt for the persona")

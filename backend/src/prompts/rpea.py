@@ -1,3 +1,4 @@
+rpea_prompt = """
 # **Required Personas Extractor Agent**
 
 ---

@@ -15,27 +15,32 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!socket.current) {
-      socket.current = new WebSocket("ws://localhost:8000/debate");
+      console.log("Creating new WebSocket connection...");
+      const ws = new WebSocket("ws://localhost:8000/debate");
       
-      socket.current.onopen = () => {
-        console.log("WebSocket connected");
+      ws.onopen = () => {
+        console.log("WebSocket connected successfully");
         setIsConnected(true);
       };
 
-      socket.current.onerror = (error) => {
+      ws.onerror = (error) => {
         console.error("WebSocket error:", error);
         setIsConnected(false);
       };
 
-      socket.current.onclose = () => {
+      ws.onclose = () => {
         console.log("WebSocket connection closed");
         setIsConnected(false);
       };
+
+      socket.current = ws;
     }
 
     return () => {
       if (socket.current?.readyState === WebSocket.OPEN) {
-        socket.current?.close();
+        console.log("Closing WebSocket connection...");
+        socket.current.close();
+        socket.current = null;
       }
     };
   }, []);

@@ -5,28 +5,38 @@ import uuid
 from PIL import Image
 from uuid import uuid4
 from datetime import datetime
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 
 from src.config import settings
-from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt
+from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent
 from src.debate.prompts_models import CoordinatorOutput
 
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.commentator import commentator_prompt
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from src.tools import websearch
 
 class DebateContext(BaseModel):
     topic: str
     participants: List[dict]
     conversation_history: str
+
+class SearchToolResponse(BaseModel):
+    """Response from the search tool"""
+    web_contents: List[WebContent]
+
+class ParticipantResponse(BaseModel):
+    """Structured response from a participant"""
+    response: str = Field(description="The participant's response in the debate")
+    sources: Optional[List[str]] = Field(default=None, description="Sources used in the response")
 
 def format_conversation(conversation_history: List[Statement]) -> str:
     return "\n\n".join([
@@ -178,10 +188,24 @@ async def participant_agent(state: DebateState):
             model=model,
             system_prompt=persona.system_prompt,
             deps_type=DebateContext,
-        )   
+            result_type=ParticipantResponse
+        )           
+
+        @debate_agent.tool
+        async def search(ctx: RunContext[DebateContext], query: str) -> SearchToolResponse:
+            """Search the internet for relevant information.
+            
+            Args:
+                ctx: The context of the debate
+                query: The search query related to the debate topic
+            """
+            search_query = SearchQuery(                
+                queries=[query],
+                query_id=str(uuid4())
+            )
+            results = await websearch(search_query)
+            return SearchToolResponse(web_contents=results)
         return debate_agent
-    
-    
         
     current_speaker_no = int(state["current_speaker_uuid"])
     current_speaker_uuid = state["participants_queue"][current_speaker_no]
@@ -191,17 +215,25 @@ async def participant_agent(state: DebateState):
     context = DebateContext(
         topic=state["topic"],
         participants=[{"name": p.name} for p in state["participants"]],
-        conversation_history=conversation_history
+        conversation_history=conversation_history[-3:]
     )
-    agent_response = await agent.run(f"You are now speaking in the debate", deps=context)
+    
+    agent_response = await agent.run(
+        "You are now speaking in the debate. Use the search tool to find relevant information to support your arguments.",
+        deps=context
+    )
 
-    statement : Statement = Statement(
-            uuid=str(uuid4()),
-            content=agent_response.data,
-            persona_uuid=str(current_speaker_uuid),
-            timestamp=datetime.now()
-        )
-    return {"conversation_history": [statement], "current_speaker_uuid": str(current_speaker_no + 1)}
+    statement: Statement = Statement(
+        uuid=str(uuid4()),
+        content=agent_response.data.response,
+        persona_uuid=str(current_speaker_uuid),
+        timestamp=datetime.now()
+    )
+    
+    return {
+        "conversation_history": [statement], 
+        "current_speaker_uuid": str(current_speaker_no + 1)
+    }
 
 
 memory = MemorySaver()

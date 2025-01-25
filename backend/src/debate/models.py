@@ -183,9 +183,8 @@ class DebateState(TypedDict):
 
 # Tools
 class SearchQuery(BaseModel):
-    queries: list[str] = Field(description="Search query")
-    language: str | None = Field(description="Language of the search query")
-    query_id: int = Field(description="Unique identifier for the search query")
+    queries: list[str] = Field(description="Search query")    
+    query_id: str = Field(description="Unique identifier for the search query")
 
 class SearchResult(BaseModel):
     query_id: int = Field(description="Unique identifier for the search query")

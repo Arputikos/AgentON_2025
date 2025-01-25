@@ -24,7 +24,7 @@ from src.prompts.opening import opening_agent_prompt
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
-from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningPrompt, ModeratorOutput, CommentatorOutput
+from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningOutput, ModeratorOutput, CommentatorOutput
 
 from src.graph import graph, get_persona_by_uuid
 from src.graph import personas as const_personas
@@ -95,7 +95,7 @@ async def process_prompt(request: PromptRequest):
         config_file = OUTPUT_DIR / f"debate_config_{debate_id}.json"
         with open(config_file, "w") as f:
             debate_config = DebateConfig(
-                speakers=DEFAULT_PERSONAS,
+                speakers=[],
                 prompt=request.prompt,
             )
             json.dump(debate_config.model_dump(), f, indent=2, default=str)
@@ -254,7 +254,7 @@ async def websocket_endpoint(websocket: WebSocket):
             model=model,
             system_prompt=opening_agent_prompt,
             deps_type=List[Persona],
-            result_type=OpeningPrompt
+            result_type=OpeningOutput
         )   
 
         def data_to_frontend_payload(name: str, content: str):
@@ -272,7 +272,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         opening_stmt: Statement = Statement(
             uuid=str(uuid.uuid4()),
-            content=opening_result.data.system_prompt,
+            content=f"{opening_result.data.opening}\n{opening_result.data.welcome_message}\n{opening_result.data.topic_introduction}\n{opening_result.data.personas_introduction}",
             persona_uuid=str(opening_persona.uuid),
             timestamp=datetime.now()
         )

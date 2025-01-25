@@ -275,7 +275,8 @@ async def websocket_endpoint(websocket: WebSocket):
             conversation_history=[opening_stmt],
             comments_history=[],
             is_debate_finished=False,
-            participants_queue=[]
+            participants_queue=[],
+            extrapolated_prompt=extrapolated_prompt
         )
         
         async def stream_graph_updates(input_message: dict, config: dict):            

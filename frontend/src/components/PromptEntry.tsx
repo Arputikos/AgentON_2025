@@ -33,20 +33,10 @@ export default function Home() {
         body: JSON.stringify({ prompt: prompt.trim() }),
       });
 
-      const data = await response.json();
-      
-      if (data.debate_config && data.debate_config.speakers) {
-        const debateState = {
-          prompt: data.debate_config.prompt,
-          participants: data.debate_config.speakers.map((speaker: Speaker) => ({
-            id: speaker.uuid,
-            name: speaker.name,
-            role: speaker.profession,
-            avatar: speaker.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${speaker.name.toLowerCase().replace(' ', '-')}`,
-          }))
-        };
+      const debateId = await response.json();
 
-        const stateParam = encodeURIComponent(JSON.stringify(debateState));
+      if (debateId) {
+        const stateParam = encodeURIComponent(JSON.stringify(debateId));
         router.push(`/debate-room?state=${stateParam}`);
       } else {
         console.error('Failed to initialize debate: Invalid response format');

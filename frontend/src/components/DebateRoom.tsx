@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -8,14 +9,17 @@ import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useDebateStream } from '@/hooks/useDebateStream';
-import { useState } from 'react';
+import { useParticipantStream } from '@/hooks/useParticipantStream';
 
 interface Speaker {
   id: string;
   name: string;
   role: string;
   avatar: string;
-  stance?: string;
+  expertise?: string[];
+  personality?: string;
+  attitude?: string;
+  debate_style?: string;
   position?: {
     top: string;
     left: string;
@@ -23,15 +27,25 @@ interface Speaker {
   };
 }
 
+interface DebateConfig {
+  speakers: Array<{
+    uuid: string;
+    name: string;
+    title: string | null;
+    image_url: string;
+    description: string;
+    personality: string;
+    expertise: string[];
+    attitude: string;
+    background: string;
+    debate_style: string;
+  }>;
+  prompt: string;
+}
+
 function calculatePosition(index: number, total: number) {
-    // Calculate angle for this speaker (in radians)
-    // Subtract π/2 to start from top (instead of right)
     const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
-    
-    // This ensures avatars sit exactly on the circle's edge
     const radius = 30;
-    
-    // Calculate position using trigonometry
     const top = `${50 + radius * Math.sin(angle)}%`;
     const left = `${40 + radius * Math.cos(angle)}%`;
     
@@ -42,24 +56,31 @@ function calculatePosition(index: number, total: number) {
     };
 }
 
-interface DebateRoomProps {
-  prompt: string;
-  participants: Array<Speaker>;
-}
-
-export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
+export default function DebateRoom() {
   const [showChat, setShowChat] = useState(false);
+  const [topic, setTopic] = useState('');
   const searchParams = useSearchParams();
-  const stateParam = searchParams.get('state');
-  const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
+  const debateId = searchParams.get('state');
   const { isConnected } = useWebSocket();
-  const { messages, streaming } = useDebateStream(prompt);
+  
+  // Use both streaming hooks
+  const { 
+    participants, 
+    isInitializing, 
+    isComplete, 
+    error: participantError 
+  } = useParticipantStream(debateId);
+  
+  const { messages, streaming } = useDebateStream(
+    // Only start message streaming after participants are loaded
+    isComplete ? topic : null
+  );
 
-  // Assign positions to speakers
+  // Calculate positions for current participants
   const speakers = participants.map((speaker, index) => ({
     ...speaker,
     position: calculatePosition(index, participants.length)
-  }))
+  }));
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -93,7 +114,7 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
-              <p className="text-gray-600 mt-1">Topic: {decodeURIComponent(prompt)}</p>
+              <p className="text-gray-600 mt-1">Topic: {decodeURIComponent(topic)}</p>
             </div>
           </div>
         </div>

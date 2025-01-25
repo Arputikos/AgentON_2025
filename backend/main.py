@@ -102,9 +102,6 @@ async def process_prompt(request: PromptRequest):
 
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):
-    """
-    WebSocket endpoint that handles the debate and streams responses.
-    """
     try:
         print("New WebSocket connection attempt...")
         await websocket.accept()
@@ -112,7 +109,9 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Read initial message with debate_id
         initial_message = await websocket.receive_json()
-        debate_id = initial_message.get('debate_id')
+        debate_id = initial_message.get('debate_id').strip('"')  # Remove any surrounding quotes
+        print(f"Received debate_id: {debate_id}")
+        
         if not debate_id:
             raise ValueError("No debate_id provided in initial message")
         
@@ -120,13 +119,15 @@ async def websocket_endpoint(websocket: WebSocket):
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
         config_file = OUTPUT_DIR / f"debate_config_{debate_id}.json"
         
+        print("prompt_file: ", prompt_file)
+        print("config_file: ", config_file)
         if not prompt_file.exists() or not config_file.exists():
             raise ValueError(f"Debate files not found for id: {debate_id}")
             
-        # Load and deserialize the prompt and config
+        # Load debate configuration and prompt
         with open(prompt_file) as f:
             prompt_data = json.load(f)
-            extrapolated_prompt = ExtrapolatedPrompt(**prompt_data)
+            extrapolated_prompt = prompt_data.get("prompt")
             
         with open(config_file) as f:
             config_data = json.load(f)
@@ -134,7 +135,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
         print(f"Loaded debate prompt: {extrapolated_prompt}")
         print(f"Loaded debate config: {debate_config}")
-        
+
         # Create the Required Personas Extractor Agent
         rpea_agent = Agent(
             model=model,
@@ -142,10 +143,8 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=RPEAPrompt
         )
         
-        user_prompt = extrapolated_prompt.prompt
-
         # Generate personas
-        personas_result = await rpea_agent.run(user_prompt)
+        personas_result = await rpea_agent.run(extrapolated_prompt)
         personas_obj = personas_result.data
 
         # TODO: dodać statyczne role
@@ -155,37 +154,68 @@ async def websocket_endpoint(websocket: WebSocket):
             model=model,
             system_prompt=coordinator_prompt
         )
+        coordinator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Coordinator",
+            title="Debate manager",
+            image_url=None,
+            description="Debate coordinator",
+            system_prompt=coordinator_prompt
+        )
+        personas_obj.personas.append(coordinator_persona)
+        
         # moderator
         moderator_agent = Agent(
             model=model,
             system_prompt=moderator_prompt
         )
+        moderator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Moderator",
+            title="Debate moderator",
+            image_url=None,
+            description="Debate moderator",
+            system_prompt=moderator_prompt
+        )
+        personas_obj.personas.append(moderator_persona)
+
         # commentator
         commentator_agent = Agent(
             model=model,
             system_prompt=commentator_prompt
         )
+        commentator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Commentator",
+            title="Debate commentator",
+            image_url=None,
+            description="Debate commentator",
+            system_prompt=commentator_prompt
+        )
+        personas_obj.personas.append(commentator_persona)        
 
         # opening_agent
-        opening_agent_id = OpeningAgent(
+        opening_agent = Agent(
             model=model,
             system_prompt=opening_agent_prompt
         )
+        opening_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Opening",
+            title="Debate opening",
+            image_url=None,
+            description="Debate opening",
+            system_prompt=opening_agent_prompt
+        )
+        personas_obj.personas.append(opening_persona)   
 
         # Send confirmation to client with persona details
         await websocket.send_json({
+            "type": "setup_complete",
             "status": "success",
-            "message": "Personas generated",
-            "count": len(personas_obj.personas),
-            "personas": [
-                {
-                    "uuid": str(persona.uuid),
-                    "name": persona.name,
-                    "title": persona.title,
-                    "image_url": persona.image_url
-                } for persona in personas_obj.personas
-            ]
+            "message": "All personas have been streamed"
         })
+        print("Sent setup complete token")
         
         # Create the Prompt Crafter Agent
         prompt_crafter_agent = Agent(
@@ -194,7 +224,7 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=PromptCrafterPrompt
         )
         
-        # Generate system prompts for each persona
+        # Generate system prompts for each persona and keep sending them to client
         for persona in personas_obj.personas:
             persona_data = {
                 "name": persona.name,
@@ -248,18 +278,26 @@ async def websocket_endpoint(websocket: WebSocket):
                 #             await websocket.send_text(content)
                 
                 # Send end marker
-                await websocket.send_text("__STREAM_END__")
-                print("Finished streaming response")
+        #        await websocket.send_text("__STREAM_END__")
+        #        print("Finished streaming response")
                         
-            except WebSocketDisconnect:
-                print("Client disconnected")
-                break
-            except Exception as e:
-                print(f"Error processing message: {str(e)}")
-                await websocket.send_text(f"Error: {str(e)}")
+        #    except WebSocketDisconnect:
+        #        print("Client disconnected")
+        #        break
+        #    except Exception as e:
+        #        print(f"Error processing message: {str(e)}")
+        #        await websocket.send_json({
+        #            "type": "error",
+        #            "message": str(e)
+        #        })
                 
     except Exception as e:
         print(f"WebSocket error: {str(e)}")
+        if not websocket.client_state.DISCONNECTED:
+            await websocket.send_json({
+                "type": "error",
+                "message": str(e)
+            })
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,3 +1,4 @@
+context_prompt = """
 # **Context Enrichment Agent: AI-Driven Debate Swarm Initialization**  
 
 ## **System Init**  
@@ -97,3 +98,4 @@ Your final response must be in **structured JSON format**, containing:
 - **Emphasize structured, multi-step execution**, ensuring context delivery is clear, precise, and strategically sequenced.  
 
 ---
+"""

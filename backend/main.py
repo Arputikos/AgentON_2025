@@ -8,9 +8,8 @@ import openai
 import uvicorn
 from pydantic import BaseModel
 from fastapi import WebSocketDisconnect
-
-from src.objects import DEFAULT_PERSONAS, Persona
-
+from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS
+from src.config import settings
 load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -25,15 +24,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# obiekt zawierający konfigurację debaty -> można zmieniać wedle uznania
-class DebateConfig(BaseModel):
-    speakers: list[Persona]
-    prompt: str
-
-# prompt od użytkownika
-class PromptRequest(BaseModel):
-    prompt: str
 
 @app.post("/enter-debate")
 async def process_prompt(request: PromptRequest):

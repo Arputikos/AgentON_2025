@@ -27,7 +27,7 @@ from src.prompts.commentator import commentator_prompt
 from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningPrompt, ModeratorOutput, CommentatorOutput
 
 from src.graph import graph, get_persona_by_uuid
-from src.debate.models import personas as const_personas
+from src.graph import personas as const_personas
 from src.graph_run import config
 
 import json

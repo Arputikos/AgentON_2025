@@ -99,7 +99,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     if hasattr(chunk.choices[0].delta, 'content'):
                         content = chunk.choices[0].delta.content
                         if content:
-                            print(f"Streaming chunk: {content}")
+                            #print(f"Streaming chunk: {content}")
                             await websocket.send_text(content)
                 
                 # Send end marker

@@ -95,15 +95,15 @@ export default function DebateRoom() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 min-h-[calc(100vh-100px)]">
+      <main className="w-full mx-auto px-4 py-8 min-h-[calc(100vh-100px)]">
         <div className="grid grid-cols-12 gap-8 h-full">
           {/* Moderator Panel - Left Side */}
-          <div className="col-span-3">
+          <div className="col-span-2">
             <ModeratorCard />
           </div>
 
           {/* Debate Table - Center */}
-          <div className="col-span-6 bg-white rounded-xl shadow-md p-8">
+          <div className="col-span-5 bg-white rounded-xl shadow-md p-8">
             <div className="relative w-full aspect-square">
               {/* Virtual Round Table */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -136,7 +136,7 @@ export default function DebateRoom() {
 
           {/* Chat History - only shown when toggled */}
           {showChat && (
-            <div className="col-span-3">
+            <div className="col-span-5">
               <ChatHistory messages={messages} />
             </div>
           )}

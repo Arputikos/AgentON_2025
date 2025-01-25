@@ -14,5 +14,5 @@ jobs:
           cd backend
           mkdir -p tests
           ls -la  # Show directory contents
-          pip install -r requirements-dev.txt
+          pip install -r requirements.txt
           python -m pytest -v tests/  # Run pytest with verbose output and explicit directory 

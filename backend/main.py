@@ -223,11 +223,10 @@ async def websocket_endpoint(websocket: WebSocket):
             debate_style="Formal and welcoming"
         )
         personas_obj.personas.append(opening_persona)   
-        personas_obj.personas.extend(const_personas)
 
         print("Personas completed")
         
-        # SETUP ROMPTÓW DLA AGENTÓW 
+        # SETUP PROMPTÓW DLA AGENTÓW 
         # Create the Prompt Crafter Agent
         prompt_crafter_agent = Agent(
             model=model,
@@ -246,6 +245,7 @@ async def websocket_endpoint(websocket: WebSocket):
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
 
+        personas_obj.personas.extend(const_personas)
         persona_list: List[Persona] = personas_obj.personas
 
         # Generate opening statement

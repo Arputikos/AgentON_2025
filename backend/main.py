@@ -246,6 +246,8 @@ async def websocket_endpoint(websocket: WebSocket):
             debate_style="Formal and welcoming"
         )
         personas_obj.personas.append(opening_persona)
+
+        print("Personas completed")
         
         # SETUP ROMPTÓW DLA AGENTÓW 
         # Create the Prompt Crafter Agent
@@ -262,6 +264,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 "title": persona.title,
                 "description": persona.description
             }
+            print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
 
@@ -274,6 +277,8 @@ async def websocket_endpoint(websocket: WebSocket):
             deps_type=List[Persona],
             result_type=OpeningPrompt
         )   
+
+        print("Opening")
 
         opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
         opening_stmt: Statement = Statement(
@@ -293,6 +298,8 @@ async def websocket_endpoint(websocket: WebSocket):
             is_debate_finished = False
         )
         stan_debaty["conversation_history"].append(opening_stmt)
+
+        print("Loop started")
 
         while True:
             try:

@@ -12,10 +12,17 @@ from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERS
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
+
+# prompts
 from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
-from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt
+from src.prompts.opening import opening_agent_prompt
+from src.prompts.coordinator import coordinator_prompt
+from src.prompts.moderator import moderator_prompt
+from src.prompts.commentator import commentator_prompt
+from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningPrompt
+
 import json
 from pathlib import Path
 import uuid
@@ -141,6 +148,26 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_result = await rpea_agent.run(user_prompt)
         personas_obj = personas_result.data
 
+        # TODO: dodać statyczne role
+
+        # coordinator
+        coordinator_agent = Agent(
+            model=model,
+            system_prompt=coordinator_prompt
+        )
+        # moderator
+        moderator_agent = Agent(
+            model=model,
+            system_prompt=moderator_prompt
+        )
+        # commentator
+        commentator_agent = Agent(
+            model=model,
+            system_prompt=commentator_prompt
+        )
+
+        # opening_agent
+
         # Send confirmation to client with persona details
         await websocket.send_json({
             "status": "success",
@@ -173,6 +200,19 @@ async def websocket_endpoint(websocket: WebSocket):
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
 
+        persona_list: List[Persona] = personas_obj.personas
+
+        # opening agent
+        opening_agent = Agent(
+            model=model,
+            system_prompt=opening_agent_prompt,
+            deps_type=List[Persona],
+            result_type=OpeningPrompt
+        )   
+
+        opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
+        opening_prompt = opening_result.data.system_prompt
+        
         while True:
             try:
 # Tu powinna wjechać pętla debaty

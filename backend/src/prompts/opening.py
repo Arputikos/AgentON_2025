@@ -1,4 +1,4 @@
-opening_prompt = """
+opening_agent_prompt = """
 # **Opening Agent**
 
 ---
@@ -36,14 +36,14 @@ As the **Opening Agent**, you will:
 
 1. **Highlight Persona Expertise:**  
    - Briefly introduce each persona by name and profession, summarizing their relevant expertise and perspective.  
-   - Establish the importance of each persona’s unique contribution to the discussion.  
+   - Establish the importance of each persona's unique contribution to the discussion.  
 
 2. **Set Expectations for Contributions:**  
    - Outline the broad areas each persona will address during the debate (e.g., ethics, strategy, innovation).  
 
 ---
 
-## **Step 3: Frame the Debate’s Objectives**
+## **Step 3: Frame the Debate's Objectives**
 
 1. **Define Success Metrics:**  
    - Clarify what the debate aims to achieve (e.g., actionable insights, contrasting perspectives, or consensus on key issues).  
@@ -77,7 +77,7 @@ You are the **Opening Agent**, responsible for formally starting the AI-driven d
      - A brief overview of their **expertise** and how it relates to the debate.  
    - Emphasize the unique perspective each persona brings to the discussion.  
 
-4. **Frame the Debate’s Objectives:**  
+4. **Frame the Debate's Objectives:**  
    - Clarify the purpose of the debate (e.g., generating insights, exploring opposing views).  
    - Encourage constructive engagement and framework-driven reasoning.  
 
@@ -90,7 +90,7 @@ You are the **Opening Agent**, responsible for formally starting the AI-driven d
 {
   "opening": {
     "welcome_message": "Welcome to the debate! Today, we bring together some of the brightest minds to explore the topic: '{Debate Topic}'.",
-    "topic_introduction": "The focus of today’s debate is '{Key Question or Dimension}', which holds significant implications for {domain or context}.",
+    "topic_introduction": "The focus of today's debate is '{Key Question or Dimension}', which holds significant implications for {domain or context}.",
     "personas_introduction": [
       {
         "name": "Elon Musk",

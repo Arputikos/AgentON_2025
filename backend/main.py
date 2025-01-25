@@ -177,6 +177,7 @@ async def websocket_endpoint(websocket: WebSocket):
             background="Professional debate moderator",
             debate_style="Balanced and controlled"
         )
+        personas_obj.personas.append(moderator_persona) 
 
         commentator_persona = Persona(
             uuid=str(uuid.uuid4()),

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { useSearchParams } from 'next/navigation';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
@@ -40,11 +39,9 @@ function calculatePosition(index: number, total: number) {
     };
 }
 
-export default function DebateRoom() {
+export default function DebateRoom({ debateId }: {debateId: string}) {
   const [showChat, setShowChat] = useState(false);
   const [topic, setTopic] = useState('');
-  const searchParams = useSearchParams();
-  const debateId = searchParams.get('state');
   const { isConnected } = useWebSocket();
   
   // Use both streaming hooks

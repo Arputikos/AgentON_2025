@@ -257,6 +257,15 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=OpeningPrompt
         )   
 
+        def data_to_frontend_payload(name: str, content: str):
+            return {
+                "type": "message",
+                "data": {
+                    "name": name,
+                    "content": content
+                }
+            }
+
         print("Opening")
 
         opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
@@ -267,6 +276,8 @@ async def websocket_endpoint(websocket: WebSocket):
             persona_uuid=str(opening_persona.uuid),
             timestamp=datetime.now()
         )
+
+        reply = data_to_frontend_payload("Opening commentator", opening_stmt.content)
         
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
@@ -292,15 +303,9 @@ async def websocket_endpoint(websocket: WebSocket):
                             name = persona.name
                         else:
                             print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Koordynator name")
-                            name = "Koordynator"
+                            name = "Coordinator"
                         
-                        reply = {
-                            "type": "message",
-                            "data": {
-                                "name": name,
-                                "content": last_statement.content
-                            }
-                        }
+                        reply = data_to_frontend_payload(name, last_statement.content)
                         print(reply)
                         await websocket.send_json(reply)
                     except Exception as e:

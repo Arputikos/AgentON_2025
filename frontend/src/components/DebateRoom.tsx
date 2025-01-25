@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -10,6 +10,7 @@ import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useDebateStream } from '@/hooks/useDebateStream';
 import { useParticipantStream } from '@/hooks/useParticipantStream';
+import Image from 'next/image';
 
 interface Speaker {
   id: string;
@@ -45,9 +46,9 @@ interface DebateConfig {
 
 function calculatePosition(index: number, total: number) {
     const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
-    const radius = 30;
+    const radius = 37.5;
     const top = `${50 + radius * Math.sin(angle)}%`;
-    const left = `${40 + radius * Math.cos(angle)}%`;
+    const left = `${50 + radius * Math.cos(angle)}%`;
     
     return {
       top,
@@ -58,22 +59,33 @@ function calculatePosition(index: number, total: number) {
 
 export default function DebateRoom() {
   const [showChat, setShowChat] = useState(false);
-  const [topic, setTopic] = useState('');
   const searchParams = useSearchParams();
   const debateId = searchParams.get('state');
   const { isConnected } = useWebSocket();
   
-  // Use both streaming hooks
   const { 
     participants, 
     isInitializing, 
     isComplete, 
-    error: participantError 
+    error: participantError,
+    topic 
   } = useParticipantStream(debateId);
-  
+
+  // Memoize speaker positions calculation
+  const speakers = useMemo(() => {
+    if (!participants.length) return [];
+    console.log('Calculating positions for speakers:', participants.length);
+    return participants.map((speaker, index) => {
+      const position = calculatePosition(index, participants.length);
+      return {
+        ...speaker,
+        position
+      };
+    });
+  }, [participants]); // Only recalculate when participants array changes
+
   const { messages, streaming } = useDebateStream(
-    // Only start message streaming after participants are loaded
-    isComplete ? topic : null
+    isComplete && topic ? topic : null
   );
 
   // Add debug logging
@@ -81,16 +93,6 @@ export default function DebateRoom() {
     console.log('Current participants:', participants);
     console.log('Initialization status:', { isInitializing, isComplete });
   }, [participants, isInitializing, isComplete]);
-
-  // Calculate positions for current participants
-  const speakers = participants.map((speaker, index) => {
-    const position = calculatePosition(index, participants.length);
-    console.log(`Calculated position for ${speaker.name}:`, position);
-    return {
-      ...speaker,
-      position
-    };
-  });
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -147,18 +149,15 @@ export default function DebateRoom() {
 
               {/* Speakers around the table */}
               {speakers.length > 0 ? (
-                speakers.map((speaker: Speaker) => {
-                  console.log('Rendering speaker:', speaker);
-                  return (
-                    <SpeakerCard
-                      key={speaker.id}
-                      name={speaker.name}
-                      role={speaker.role}
-                      avatar={speaker.avatar}
-                      position={speaker.position!}
-                    />
-                  );
-                })
+                speakers.map((speaker) => (
+                  <SpeakerCard
+                    key={speaker.id}
+                    name={speaker.name}
+                    role={speaker.role}
+                    avatar={speaker.avatar}
+                    position={speaker.position!}
+                  />
+                ))
               ) : (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   {isInitializing ? 'Loading speakers...' : 'No speakers yet'}

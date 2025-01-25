@@ -11,7 +11,7 @@ interface Message {
   isComplete: boolean;
 }
 
-export function useDebateStream(prompt: string) {
+export function useDebateStream(prompt: string | null) {
   const { isConnected, socket } = useWebSocket();
   const [streaming, setStreaming] = useState(false);
   const { streamedContent, handleStreamMessage, resetStream } = useStreamingMessage();
@@ -60,36 +60,49 @@ export function useDebateStream(prompt: string) {
 
   // WebSocket handling
   useEffect(() => {
-    if (isConnected && socket && !streaming) {
-      console.log("Starting streaming with prompt:", prompt);
-      setStreaming(true);
-      resetStream();
-      
-      try {
-        if (messageListener.current) {
-          socket.removeEventListener('message', messageListener.current);
-        }
+    if (!isConnected || !socket || !prompt || streaming) return;
 
-        messageListener.current = (event: MessageEvent) => {
-          const chunk = event.data;
-          console.log('Received chunk:', JSON.stringify(chunk));
+    console.log("Starting debate message streaming");
+    setStreaming(true);
+    resetStream();
+    
+    try {
+      if (messageListener.current) {
+        socket.removeEventListener('message', messageListener.current);
+      }
+
+      messageListener.current = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
           
+          // Ignore participant setup messages
+          if (['debate_topic', 'persona', 'setup_complete'].includes(data.type)) {
+            return;
+          }
+
+          // Handle debate messages
+          if (data.type === 'debate_message') {
+            handleStreamMessage(data.content);
+          } else if (data.type === 'message_complete') {
+            setStreaming(false);
+          }
+        } catch (error) {
+          // Handle raw streaming content
+          const chunk = event.data;
           if (chunk === "__STREAM_END__") {
             console.log("Stream ended by server");
             setStreaming(false);
             return;
           }
-          
           handleStreamMessage(chunk);
-        };
+        }
+      };
 
-        socket.addEventListener('message', messageListener.current);
-        socket.send(prompt);
-        console.log("Prompt sent successfully");
-      } catch (error) {
-        console.error("Error sending prompt:", error);
-        setStreaming(false);
-      }
+      socket.addEventListener('message', messageListener.current);
+      console.log("Debate message listener attached");
+    } catch (error) {
+      console.error("Error in debate stream:", error);
+      setStreaming(false);
     }
 
     return () => {
@@ -97,7 +110,7 @@ export function useDebateStream(prompt: string) {
         socket.removeEventListener('message', messageListener.current);
       }
     };
-  }, [isConnected, socket, prompt, handleStreamMessage, resetStream]);
+  }, [isConnected, socket, prompt, streaming, handleStreamMessage, resetStream]);
 
   // Add separate effect for content updates
   useEffect(() => {

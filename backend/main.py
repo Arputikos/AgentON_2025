@@ -111,7 +111,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Read initial message with debate_id
         initial_message = await websocket.receive_json()
-        debate_id = initial_message.get('debate_id').strip('"')  # Remove any surrounding quotes
+        debate_id = initial_message.get('debate_id').strip('"')
         print(f"Received debate_id: {debate_id}")
         
         if not debate_id:
@@ -149,6 +149,19 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_result = await rpea_agent.run(extrapolated_prompt)
         personas_obj = personas_result.data
 
+
+        ###
+        ### SEND THE TOPIC OF THE DEBATE AND THE PARTICIPANTS TO THE CLIENT 
+        ###
+
+        # Send debate topic to client
+        await websocket.send_json({
+            "type": "debate_topic",
+            "data": {
+                "topic": extrapolated_prompt
+            }
+        })
+
         # Send personas to client
         for persona in personas_obj.personas:
             await websocket.send_json({
@@ -165,6 +178,10 @@ async def websocket_endpoint(websocket: WebSocket):
         })
         print("Sent setup complete token")
 
+
+        ###
+        ### CLIENT HAS BEEN INITIALIZED CAN START THE DEBATE
+        ###
 
         # coordinator
         coordinator_persona = Persona(

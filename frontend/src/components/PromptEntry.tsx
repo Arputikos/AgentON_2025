@@ -5,14 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
-interface Speaker {
-  uuid: string;
-  name: string;
-  profession: string;
-  description: string;
-  image_url: string;
-}
-
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);

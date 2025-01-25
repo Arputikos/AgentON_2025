@@ -223,11 +223,10 @@ async def websocket_endpoint(websocket: WebSocket):
             debate_style="Formal and welcoming"
         )
         personas_obj.personas.append(opening_persona)   
-        personas_obj.personas.extend(const_personas)
 
         print("Personas completed")
         
-        # SETUP ROMPTÓW DLA AGENTÓW 
+        # SETUP PROMPTÓW DLA AGENTÓW 
         # Create the Prompt Crafter Agent
         prompt_crafter_agent = Agent(
             model=model,
@@ -246,6 +245,7 @@ async def websocket_endpoint(websocket: WebSocket):
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
 
+        personas_obj.personas.extend(const_personas)
         persona_list: List[Persona] = personas_obj.personas
 
         # Generate opening statement
@@ -270,7 +270,7 @@ async def websocket_endpoint(websocket: WebSocket):
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
             participants=personas_obj.personas,
-            current_speaker_uuid=opening_persona.uuid,
+            current_speaker_uuid="0",
             round_number=1,
             conversation_history=[opening_stmt],
             comments_history=[],
@@ -278,8 +278,8 @@ async def websocket_endpoint(websocket: WebSocket):
             participants_queue=[]
         )
         
-        async def stream_graph_updates(input_messages: list[dict], config: dict):            
-            async for event in graph.astream(input_messages, config=config):
+        async def stream_graph_updates(input_message: dict, config: dict):            
+            async for event in graph.astream(input_message, config=config):
                 for state_update in event.values():
                     if not state_update:
                         continue
@@ -288,19 +288,30 @@ async def websocket_endpoint(websocket: WebSocket):
                         persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
                         if persona:
                             reply = {
-                                "name": persona.name,
-                                "content": last_statement.content
+                                "type": "message",
+                                "data": {
+                                    "name": persona.name,
+                                    "content": last_statement.content
+                                    }
                             }
                             print(reply)
                             await websocket.send_json(reply)
                         else:
                             print(f"Persona not found for UUID: {last_statement.persona_uuid}")
+                            name = "Koordynator"
+                        
+                        reply = {
+                            "name": name,
+                            "content": last_statement.content
+                        }
+                        print(reply)
+                        await websocket.send_json(reply)
                     except Exception as e:
                         print(e)
 
         while True:  # Debate loop
             print("Debate loop started")
-            
+
             personas_uuids = [persona.uuid for persona in debate_personas]
             random.shuffle(personas_uuids)
             stan_debaty["participants_queue"] = personas_uuids
@@ -315,7 +326,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             while True:  # Round loop
                 print("Round loop started")
-                await stream_graph_updates([init_state], config)  # Wrap init_state in a list
+                await stream_graph_updates(init_state, config)  # Remove the list wrapper
                 snapshot = graph.get_state(config)
                 if not snapshot.next:
                     break
@@ -344,10 +355,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     )
                     stan_debaty["round_number"] += 1
                     stan_debaty["conversation_history"].append(next_focus)
-                    stan_debaty["current_speaker_uuid"] = str(moderator_persona.uuid) 
+                    stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = False
                 elif moderator_result.data.debate_status == "conclude":                    
-                    stan_debaty["current_speaker_uuid"] = str(moderator_persona.uuid) 
+                    stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = True 
                     # wyjście z pętli while
                     break                  
@@ -359,7 +370,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 break
             except Exception as e:
                 print(f"Error processing message: {str(e)}")
-                await websocket.send_text(f"Error: {str(e)}")
+                await websocket.send_json({
+                    "type": "error",
+                    "message": str(e)
+                })
         
         # komentator podsumowuje debatę
         commentator_agent = Agent(

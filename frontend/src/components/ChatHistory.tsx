@@ -31,6 +31,11 @@ export default function ChatHistory({ messages }: ChatHistoryProps) {
       </div>
       <div className="border-t pt-6">
         <div className="space-y-4 h-[450px] overflow-y-auto" ref={messagesEndRef}>
+          {messages.length <= 0 ? (
+            <div className="flex justify-center items-center h-[81%]">
+              <div className="w-20 h-20 z-10 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+          ) : ''}
           {messages.map((message) => (
             <ChatMessage
               key={message.id}

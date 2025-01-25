@@ -25,7 +25,7 @@ example_init_state = {   # Dictionary representation of DebateState
     "is_debate_finished": False
 }
 
-async def run_graph(init_state: Dict):    
+async def run_graph(init_state: Dict):
     while True:
         await stream_graph_updates(init_state, config)
         snapshot = graph.get_state(config)

@@ -155,7 +155,12 @@ class Statement(BaseModel):
     uuid: str = Field(..., description="Unique identifier for the statement")
     content: str = Field(..., description="Text of the statement")
     persona_uuid: str = Field(..., description="Unique identifier for the persona who made the statement")
-    timestamp: datetime = Field(..., description="Timestamp of the statement")
+    timestamp: Optional[datetime] = Field(..., description="Timestamp of the statement")
+
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+        }
 
 class Comment(Statement):
     """

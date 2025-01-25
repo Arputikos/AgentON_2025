@@ -276,14 +276,14 @@ async def websocket_endpoint(websocket: WebSocket):
 
         opening_stmt: Statement = Statement(
             uuid=str(uuid.uuid4()),
-            content=f"{opening_result.data.opening}\n{opening_result.data.welcome_message}\n{opening_result.data.topic_introduction}\n{opening_result.data.personas_introduction}",
+            content=f"Opening statement:{opening_result.data.opening}\n Welcome message:{opening_result.data.welcome_message}\nTopic introduction:{opening_result.data.topic_introduction}",
             persona_uuid=str(opening_persona.uuid),
             timestamp=datetime.now()
         )
 
         reply = data_to_frontend_payload("Opening commentator", opening_stmt.content)
         await websocket.send_json(reply)
-        
+
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
             participants=personas_obj.personas,

@@ -8,9 +8,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def search_function(query: str) -> str:
-    return f"Performing a web search for: {query}"
-
 def calculator_function(expression: str) -> dict:
     return {
         "result": float(eval(expression)),

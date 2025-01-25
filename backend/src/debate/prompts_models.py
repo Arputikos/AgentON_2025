@@ -27,7 +27,19 @@ class PromptCrafterPrompt(BaseModel):
     """
     Prompt crafter prompt for the debate.
     """
-    persona_list: str = Field(..., description="List of personas for the debate")
+    persona: str = Field(..., description="The persona name")
     role: str = Field(..., description="Role of the persona")
     response: str = Field(..., description="Response of the persona")
     system_prompt: str = Field(..., description="System prompt for the persona")
+
+class OpeningPrompt(BaseModel):
+    """
+    Opening prompt for the debate.
+    """
+    system_prompt: str = Field(..., description="System prompt for the opening")
+
+class CoordinatorPrompt(BaseModel):
+    """
+    Coordinator prompt for the debate.
+    """
+    system_prompt: str = Field(..., description="System prompt for the coordinator")

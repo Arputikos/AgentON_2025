@@ -12,10 +12,17 @@ from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERS
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
+
+# prompts
 from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
-from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt
+from src.prompts.opening import opening_agent_prompt
+from src.prompts.coordinator import coordinator_prompt
+from src.prompts.moderator import moderator_prompt
+from src.prompts.commentator import commentator_prompt
+from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningPrompt
+
 import json
 from pathlib import Path
 import uuid
@@ -139,19 +146,70 @@ async def websocket_endpoint(websocket: WebSocket):
         # Generate personas
         personas_result = await rpea_agent.run(extrapolated_prompt)
         personas_obj = personas_result.data
-        
-        # Stream each persona individually to client
-        for persona in personas_obj.personas:
-            await websocket.send_json({
-                "type": "persona",
-                "data": persona.model_dump()
-            })
-            print(f"Sent persona data for {persona.name}")
-            
-            # Add small delay between personas to avoid overwhelming client
-            await asyncio.sleep(0.1)
 
-        # Send setup complete token
+        # TODO: dodać statyczne role
+
+        # coordinator
+        coordinator_agent = Agent(
+            model=model,
+            system_prompt=coordinator_prompt
+        )
+        coordinator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Coordinator",
+            title="Debate manager",
+            image_url=None,
+            description="Debate coordinator",
+            system_prompt=coordinator_prompt
+        )
+        personas_obj.personas.append(coordinator_persona)
+        
+        # moderator
+        moderator_agent = Agent(
+            model=model,
+            system_prompt=moderator_prompt
+        )
+        moderator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Moderator",
+            title="Debate moderator",
+            image_url=None,
+            description="Debate moderator",
+            system_prompt=moderator_prompt
+        )
+        personas_obj.personas.append(moderator_persona)
+
+        # commentator
+        commentator_agent = Agent(
+            model=model,
+            system_prompt=commentator_prompt
+        )
+        commentator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Commentator",
+            title="Debate commentator",
+            image_url=None,
+            description="Debate commentator",
+            system_prompt=commentator_prompt
+        )
+        personas_obj.personas.append(commentator_persona)        
+
+        # opening_agent
+        opening_agent = Agent(
+            model=model,
+            system_prompt=opening_agent_prompt
+        )
+        opening_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Opening",
+            title="Debate opening",
+            image_url=None,
+            description="Debate opening",
+            system_prompt=opening_agent_prompt
+        )
+        personas_obj.personas.append(opening_persona)   
+
+        # Send confirmation to client with persona details
         await websocket.send_json({
             "type": "setup_complete",
             "status": "success",
@@ -176,11 +234,21 @@ async def websocket_endpoint(websocket: WebSocket):
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
 
-            print(f"Sent system prompt for {persona.name}")
+        persona_list: List[Persona] = personas_obj.personas
 
-        # Now handle the debate loop
-        #while True:
-        #    try:
+        # opening agent
+        opening_agent = Agent(
+            model=model,
+            system_prompt=opening_agent_prompt,
+            deps_type=List[Persona],
+            result_type=OpeningPrompt
+        )   
+
+        opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
+        opening_prompt = opening_result.data.system_prompt
+        
+        while True:
+            try:
 # Tu powinna wjechać pętla debaty
 
                 # debate_prompt = await websocket.receive_text()

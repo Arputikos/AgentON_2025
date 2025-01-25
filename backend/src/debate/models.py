@@ -124,6 +124,7 @@ class Coordinator(BaseModel):
     """
     uuid: str = Field(..., description="Unique identifier for the coordinator")
     system_prompt: str = Field(..., description="System prompt for the coordinator")
+    
 class Commentator(BaseModel):
     """
     Commentator of the debate, expert profile.

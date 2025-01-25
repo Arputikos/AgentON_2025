@@ -1,4 +1,4 @@
-
+req_prompt = """
 
 **1. Context Enrichment Agent Requirements:**
 ```
@@ -116,7 +116,4 @@ FORMAT: Structured commentary:
   "patterns": string[],
   "progress": object
 }
-```
-
-
-
+"""

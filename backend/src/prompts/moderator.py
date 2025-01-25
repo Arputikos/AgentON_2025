@@ -1,6 +1,5 @@
 moderator_prompt = """
 # **Moderator Agent**
-
 ---
 
 ## **System Init**

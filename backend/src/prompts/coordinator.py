@@ -1,8 +1,6 @@
 coordinator_prompt = """
 # **Koordynator (Coordinator Agent)**
 
----
-
 ## **System Init**
 
 ### **Role:**  

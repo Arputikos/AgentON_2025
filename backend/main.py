@@ -149,20 +149,36 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_result = await rpea_agent.run(extrapolated_prompt)
         personas_obj = personas_result.data
 
-        # TODO: dodać statyczne role
+        # Send personas to client
+        for persona in personas_obj.personas:
+            await websocket.send_json({
+                "type": "persona",
+                "data": persona.model_dump()
+            })
+            print(f"Sent persona: {persona.name}")
+
+        # Send completion message
+        await websocket.send_json({
+            "type": "setup_complete",
+            "status": "success",
+            "message": "All personas have been streamed"
+        })
+        print("Sent setup complete token")
+
 
         # coordinator
-        coordinator_agent = Agent(
-            model=model,
-            system_prompt=coordinator_prompt
-        )
         coordinator_persona = Persona(
-            uuid=uuid.uuid4(),
+            uuid=str(uuid.uuid4()),
             name="Coordinator",
             title="Debate manager",
-            image_url=None,
+            image_url="https://ui-avatars.com/api/?name=Coordinator",
             description="Debate coordinator",
-            system_prompt=coordinator_prompt
+            system_prompt=coordinator_prompt,
+            personality="Organized and methodical",
+            expertise=["Debate management", "Process coordination"],
+            attitude="Professional and efficient",
+            background="Experienced debate coordinator",
+            debate_style="Structured and systematic"
         )
         personas_obj.personas.append(coordinator_persona)
         
@@ -183,7 +199,6 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_obj.personas.append(moderator_persona) 
 
         # commentator
-
         commentator_persona = Persona(
             uuid=str(uuid.uuid4()),
             name="Commentator",
@@ -199,6 +214,7 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         personas_obj.personas.append(commentator_persona)        
 
+        # opening persona
         opening_persona = Persona(
             uuid=str(uuid.uuid4()),
             name="Opening",

@@ -8,6 +8,7 @@ import openai
 import uvicorn
 from pydantic import BaseModel
 from fastapi import WebSocketDisconnect
+from src.debate.flow import wf
 
 from src.objects import DEFAULT_PERSONAS, Persona
 
@@ -64,6 +65,18 @@ async def process_prompt(request: PromptRequest):
             }
         }
 
+async def run_debate(websocket: WebSocket):
+    inputs = {"prompt": "Hello, how are you?"}
+    result = wf.invoke(inputs)
+    print(result)
+    response = result['response']
+    await websocket.send_text(response)
+
+    # Send end marker
+    await websocket.send_text("__STREAM_END__")
+    print("Finished streaming response")
+
+
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):
     """
@@ -79,32 +92,33 @@ async def websocket_endpoint(websocket: WebSocket):
                 debate_prompt = await websocket.receive_text()
                 print(f"Received debate prompt: {debate_prompt}")
                 
-                completion = client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[
-                        {
-                            "role": "system", 
-                            "content": "You are a debate moderator. Keep your opening statement concise, under 100 words."
-                        },
-                        {
-                            "role": "user", 
-                            "content": f"Provide a brief opening statement for a debate on: {debate_prompt}"
-                        }
-                    ],
-                    stream=True
-                )
+                # completion = client.chat.completions.create(
+                #     model="gpt-4",
+                #     messages=[
+                #         {
+                #             "role": "system", 
+                #             "content": "You are a debate moderator. Keep your opening statement concise, under 100 words."
+                #         },
+                #         {
+                #             "role": "user", 
+                #             "content": f"Provide a brief opening statement for a debate on: {debate_prompt}"
+                #         }
+                #     ],
+                #     stream=True
+                # )
 
-                print("Starting to stream response...")
-                for chunk in completion:
-                    if hasattr(chunk.choices[0].delta, 'content'):
-                        content = chunk.choices[0].delta.content
-                        if content:
-                            #print(f"Streaming chunk: {content}")
-                            await websocket.send_text(content)
+                await run_debate(websocket)
+
+                # print("Starting to stream response...")
+                # for chunk in completion:
+                #     if hasattr(chunk.choices[0].delta, 'content'):
+                #         content = chunk.choices[0].delta.content
+                #         if content:
+                #             #print(f"Streaming chunk: {content}")
+                #             await websocket.send_text(content)
                 
-                # Send end marker
-                await websocket.send_text("__STREAM_END__")
-                print("Finished streaming response")
+                
+                print("Finished running debate")
                         
             except WebSocketDisconnect:
                 print("Client disconnected")

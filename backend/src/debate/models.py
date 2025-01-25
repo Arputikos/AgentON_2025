@@ -191,3 +191,4 @@ class SearchResult(BaseModel):
 class WebContent(BaseModel):
     content: str = Field(description="Extracted content from the webpage")
     url: str = Field(description="Source URL")    
+    

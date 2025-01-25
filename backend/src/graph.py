@@ -9,7 +9,7 @@ from typing import List
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 
-from debate.models import DebateState, Statement, Persona
+from src.debate.models import DebateState, Statement, Persona
 
 
 def save_graph_image(bytes_image, filename):
@@ -20,24 +20,33 @@ def save_graph_image(bytes_image, filename):
 
 
 def opening_agent(state: DebateState):
-    message = {
-        "role": "user",
-        "content": "Hello World!"
-    }
-    return {"messages": [message]}
+    uuid = str(uuid4())
+    opening_statement = "Hello World!"
+    statement : Statement = Statement(
+            uuid=uuid,
+            content=opening_statement,
+            persona_uuid=uuid,
+            timestamp=datetime.now()
+    )
+    return {"conversation_history": [statement]}
 
 
 def summarizer(state: DebateState):
-    messages = state["messages"]
-    def summarize_message(message: dict):
+    def summarize_round(messages):
         return "summary"
-    summarized_messages = summarize_message(messages)
     
-    message = {
-        "role": "user",
-        "content": summarized_messages
-    }
-    return {"messages": [message]}
+    uuid = str(uuid4())
+    messages = state["conversation_history"]
+
+    summary = summarize_round(messages)
+    
+    statement : Statement = Statement(
+            uuid=uuid,
+            content=summary,
+            persona_uuid=uuid,
+            timestamp=datetime.now()
+    )
+    return {"conversation_history": [statement]}
 
 
 def coordinator(state: DebateState):
@@ -48,8 +57,8 @@ def coordinator(state: DebateState):
     def who_goes_next(participants: List[Persona]):
         random_participant = random.choice(participants)
         return random_participant.uuid
-    participants = state.participants
-    conversation_history = state.conversation_history
+    participants = state["participants"]
+    conversation_history = state["conversation_history"]
     
     if everyone_has_spoken(participants, conversation_history):
         return "summarizer"
@@ -65,8 +74,8 @@ def participant_agent(state: DebateState):
             content = f"This is a response from agent {uuid}"        
             return content
         return mock_agent
-    next_agent_uuid = state.current_speaker_uuid
-    conversation_history = state.conversation_history
+    next_agent_uuid = state["current_speaker_uuid"]
+    conversation_history = state["conversation_history"]
 
     next_agent = get_agent_by_uuid(next_agent_uuid)
 
@@ -77,7 +86,7 @@ def participant_agent(state: DebateState):
             persona_uuid=next_agent_uuid,
             timestamp=datetime.now()
         )
-    return {"conversation_history": [statement]}
+    return {"conversation_history": [statement], "is_debate_finished": True}
 
 
 memory = MemorySaver()

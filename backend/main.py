@@ -59,33 +59,30 @@ async def process_prompt(request: PromptRequest):
             model=model,
             system_prompt=context_prompt,
             result_type=ContextPrompt
-        )        
+        )
         
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
-
+        print(f"Enriched context: {enriched_context.data}")  # Let's see what we get
         
-        # Create debate configuration using DEFAULT_PERSONAS
-        debate_config = DebateConfig(
-            speakers=DEFAULT_PERSONAS,
-            prompt=request.prompt,
-        )
-        
-        class DebateID(BaseModel):
-            debate_id: uuid.UUID
-        
-        # Generate unique ID for this debate session
-        debate_id: uuid.UUID = uuid.uuid4()
+        debate_id = uuid.uuid4()
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
         with open(prompt_file, "w") as f:
-            json.dump(enriched_context, f)
+            json.dump({
+                "prompt": request.prompt,
+                "enriched_data": enriched_context.data.model_dump()
+            }, f, indent=2)
             
         # Save debate config to file
         config_file = OUTPUT_DIR / f"debate_config_{debate_id}.json"
         with open(config_file, "w") as f:
-            json.dump(debate_config.dict(), f)
+            debate_config = DebateConfig(
+                speakers=DEFAULT_PERSONAS,
+                prompt=request.prompt,
+            )
+            json.dump(debate_config.model_dump(), f, indent=2, default=str)
         
         return debate_id
         

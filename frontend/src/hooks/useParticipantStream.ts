@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-
+import { v7 } from 'uuid'
 interface Participant {
   id: string;
   name: string;
@@ -40,8 +40,6 @@ export function useParticipantStream(debateId: string | null) {
   const setupComplete = useRef(false);
 
   const handleParticipantMessage = useCallback((data: any) => {
-    if (setupComplete.current) return; // Ignore messages after setup is complete
-    
     console.log('🎭 Processing participant message:', data);
 
     switch (data.type) {
@@ -94,7 +92,7 @@ export function useParticipantStream(debateId: string | null) {
           messages: [
             ...prev.messages,
             {
-              id: '1234',//TODO
+              id: v7(),
               content: data.data.content,
               sender: data.data.name,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -102,7 +100,7 @@ export function useParticipantStream(debateId: string | null) {
             }
           ]
         }));
-        console.log('📝 Received message:', data.statement.content);
+        console.log('📝 Received message:', data.data.content);
         break;
 
       case 'final_message':

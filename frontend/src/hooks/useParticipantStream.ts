@@ -105,6 +105,23 @@ export function useParticipantStream(debateId: string | null) {
         console.log('📝 Received message:', data.statement.content);
         break;
 
+      case 'final_message':
+          setStreamState(prev => ({
+            ...prev,
+            messages: [
+              ...prev.messages,
+              {
+                id: '1234',//TODO
+                content: data.commentator_result,
+                sender: "FINAL DEBATE RESULT",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+                isComplete: true
+              }
+            ]
+          }));
+          console.log('📝 Received message:', data.statement.content);
+          break;
+
       case 'error':
         setStreamState(prev => ({
           ...prev,

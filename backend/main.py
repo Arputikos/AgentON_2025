@@ -288,7 +288,6 @@ async def websocket_endpoint(websocket: WebSocket):
                         persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
                         if persona:
                             name = persona.name
-                            await websocket.send_json(reply)
                         else:
                             print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Koordynator name")
                             name = "Koordynator"

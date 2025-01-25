@@ -155,22 +155,60 @@ async def websocket_endpoint(websocket: WebSocket):
             model=model,
             system_prompt=coordinator_prompt
         )
+        coordinator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Coordinator",
+            title="Debate manager",
+            image_url=None,
+            description="Debate coordinator",
+            system_prompt=coordinator_prompt
+        )
+        personas_obj.personas.append(coordinator_persona)
+        
         # moderator
         moderator_agent = Agent(
             model=model,
             system_prompt=moderator_prompt
         )
+        moderator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Moderator",
+            title="Debate moderator",
+            image_url=None,
+            description="Debate moderator",
+            system_prompt=moderator_prompt
+        )
+        personas_obj.personas.append(moderator_persona)
+
         # commentator
         commentator_agent = Agent(
             model=model,
             system_prompt=commentator_prompt
         )
+        commentator_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Commentator",
+            title="Debate commentator",
+            image_url=None,
+            description="Debate commentator",
+            system_prompt=commentator_prompt
+        )
+        personas_obj.personas.append(commentator_persona)        
 
         # opening_agent
-        opening_agent_id = OpeningAgent(
+        opening_agent = Agent(
             model=model,
             system_prompt=opening_agent_prompt
         )
+        opening_persona = Persona(
+            uuid=uuid.uuid4(),
+            name="Opening",
+            title="Debate opening",
+            image_url=None,
+            description="Debate opening",
+            system_prompt=opening_agent_prompt
+        )
+        personas_obj.personas.append(opening_persona)   
 
         # Send confirmation to client with persona details
         await websocket.send_json({

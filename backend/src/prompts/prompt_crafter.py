@@ -110,7 +110,7 @@ Simulate a structured debate among AI expert personas to explore **{input topic}
 
 ---
 
-## Persona Roles  
+## Example Persona Roles  
 1. **Visionary Technologist (e.g., Elon Musk):**  
    - Expertise: AI innovation, sustainability, exponential growth.  
    - Frameworks: First Principles Thinking, Moonshot Innovation.  

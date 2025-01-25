@@ -1,3 +1,5 @@
+prompt_crafter_prompt = """
+
 # **System Init**
 
 ## **Your Role as PFA (Prompt Factory Agent) Prompt Generation Orchestrator**
@@ -165,3 +167,4 @@ Simulate a structured debate among AI expert personas to explore **{input topic}
 ```
 
 ---
+"""

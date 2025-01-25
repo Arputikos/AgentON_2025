@@ -44,7 +44,6 @@ class Persona(BaseModel):
     background: str
     debate_style: str
     
-    
     def __init__(self, **data):
         super().__init__(**data)
         if not self.image_url:
@@ -60,14 +59,11 @@ class Persona(BaseModel):
 
     @property
     def system_prompt(self) -> str:
-        return f"""You are {self.name}, {self.title}. 
-Your personality: {self.personality}
-Your expertise: {', '.join(self.expertise)}
-Your attitude: {self.attitude}
-Your background: {self.background}
-Your debate style: {self.debate_style}
-
-Maintain this persona throughout the debate. Respond as this character would."""
+        return self._system_prompt
+        
+    @system_prompt.setter
+    def system_prompt(self, value: str):
+        self._system_prompt = value 
     
     class Config:
         arbitrary_types_allowed = True

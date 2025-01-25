@@ -1,3 +1,4 @@
+rpea_prompt = """
 # **Required Personas Extractor Agent**  
 
 ---
@@ -146,3 +147,4 @@ You are the **Required Personas Extractor Agent**, responsible for identifying a
 - **Ensure clarity:** Provide concise and precise persona definitions.  
 
 ---
+"""

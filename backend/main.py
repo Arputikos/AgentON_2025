@@ -12,8 +12,10 @@ from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERS
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
-from src.prompts.context_v2 import context_prompt
-from src.prompts.rpea_v2 import rpea_prompt
+from src.prompts.context import context_prompt
+from src.prompts.rpea import rpea_prompt
+from src.prompts.prompt_crafter import prompt_crafter_prompt
+from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt
 import json
 from pathlib import Path
 import uuid
@@ -40,12 +42,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create the Context Enrichment Agent
-context_agent = Agent(
-    model=model,
-    system_prompt=context_prompt
-)
-
 # Create output directory if it doesn't exist
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -57,19 +53,17 @@ async def process_prompt(request: PromptRequest):
     """
     try:
         print("Received prompt:", request.prompt)
+
+        # Create the Context Enrichment Agent
+        context_agent = Agent(
+            model=model,
+            system_prompt=context_prompt,
+            result_type=ContextPrompt
+        )        
         
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
-        # Parse the JSON string into a dictionary
-        context_dict = json.loads(str(enriched_context))
-        
-        # Parse the enriched context into ExtrapolatedPrompt
-        extrapolated_prompt = ExtrapolatedPrompt(
-            prompt=request.prompt,
-            topic=context_dict["expanded_context"]["primary_domain"],
-            context=context_dict["expanded_context"]["industry_context"],
-            suggested_participants=context_dict["debate_dimensions"]["stakeholder_perspectives"]
-        )
+
         
         # Create debate configuration using DEFAULT_PERSONAS
         debate_config = DebateConfig(
@@ -86,7 +80,7 @@ async def process_prompt(request: PromptRequest):
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
         with open(prompt_file, "w") as f:
-            json.dump(extrapolated_prompt.dict(), f)
+            json.dump(enriched_context, f)
             
         # Save debate config to file
         config_file = OUTPUT_DIR / f"debate_config_{debate_id}.json"
@@ -140,25 +134,48 @@ async def websocket_endpoint(websocket: WebSocket):
         # Create the Required Personas Extractor Agent
         rpea_agent = Agent(
             model=model,
-            system_prompt=rpea_prompt
+            system_prompt=rpea_prompt,
+            result_type=RPEAPrompt
         )
         
         user_prompt = extrapolated_prompt.prompt
 
         # Generate personas
-        personas = await rpea_agent.run(user_prompt)
+        personas_result = await rpea_agent.run(user_prompt)
+        personas_obj = personas_result.data
 
-        # convert the personas output to Persona objects
-        # TODO: fix this
-        personas = [Persona(**persona) for persona in personas]
- 
-        # Send confirmation to client
+        # Send confirmation to client with persona details
         await websocket.send_json({
             "status": "success",
             "message": "Personas generated",
-            "count": len(personas)
+            "count": len(personas_obj.personas),
+            "personas": [
+                {
+                    "uuid": str(persona.uuid),
+                    "name": persona.name,
+                    "title": persona.title,
+                    "image_url": persona.image_url
+                } for persona in personas_obj.personas
+            ]
         })
         
+        # Create the Prompt Crafter Agent
+        prompt_crafter_agent = Agent(
+            model=model,
+            system_prompt=prompt_crafter_prompt,
+            result_type=PromptCrafterPrompt
+        )
+        
+        # Generate system prompts for each persona
+        for persona in personas_obj.personas:
+            persona_data = {
+                "name": persona.name,
+                "title": persona.title,
+                "description": persona.description
+            }
+            prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
+            persona.system_prompt = prompt_result.system_prompt
+
         while True:
             try:
 # Tu powinna wjechać pętla debaty

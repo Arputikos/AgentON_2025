@@ -3,20 +3,70 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+
+interface Speaker {
+  uuid: string;
+  name: string;
+  profession: string;
+  description: string;
+  image_url: string;
+}
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { isConnected } = useWebSocket();
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (prompt.trim()) {
-      router.push(`/ask/${encodeURIComponent(prompt)}`);
+    if (!prompt.trim()) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/enter-debate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: prompt.trim() }),
+      });
+
+      const data = await response.json();
+      
+      if (data.debate_config && data.debate_config.speakers) {
+        const debateState = {
+          prompt: data.debate_config.prompt,
+          participants: data.debate_config.speakers.map((speaker: Speaker) => ({
+            id: speaker.uuid,
+            name: speaker.name,
+            role: speaker.profession,
+            avatar: speaker.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${speaker.name.toLowerCase().replace(' ', '-')}`,
+          }))
+        };
+
+        const stateParam = encodeURIComponent(JSON.stringify(debateState));
+        router.push(`/debate-room?state=${stateParam}`);
+      } else {
+        console.error('Failed to initialize debate: Invalid response format');
+      }
+    } catch (error) {
+      console.error('Error initializing debate:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+      {/* Connection Status Indicator */}
+      <div className="fixed top-4 right-4">
+        <div className={`w-3 h-3 rounded-full ${
+          isConnected ? 'bg-green-500' : 'bg-red-500'
+        }`} />
+      </div>
+      
       <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-xl">
         <div className="flex items-center justify-center mb-8">
           <Sparkles className="w-8 h-8 text-purple-500 mr-2" />
@@ -35,14 +85,18 @@ export default function Home() {
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 min-h-[120px] resize-none"
               placeholder="e.g., Should artificial intelligence be regulated?"
               required
+              disabled={isLoading}
             />
           </div>
           
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity duration-200 flex items-center justify-center"
+            disabled={isLoading}
+            className={`w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold py-3 px-6 rounded-lg transition-opacity duration-200 flex items-center justify-center ${
+              isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
+            }`}
           >
-            Start Debate
+            {isLoading ? 'Initializing Debate...' : 'Start Debate'}
             <Sparkles className="w-5 h-5 ml-2" />
           </button>
         </form>

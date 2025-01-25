@@ -16,3 +16,6 @@ pydantic==2.10.6
 pydantic-settings>=2.1.0
 pydantic_ai==0.0.20
 langfuse==2.57.12
+exa_py==1.7.1
+trafilatura>=0.10.0
+aiohttp>=3.8.6

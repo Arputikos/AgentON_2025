@@ -12,9 +12,11 @@ interface SpeakerCardProps {
   }
 
 export default function SpeakerCard({ name, role, avatar, position }: SpeakerCardProps) {
+  console.log('SpeakerCard rendered:', { name, role, avatar, position });
+  
   return (
     <div
-      className="absolute w-24 -translate-x-1/2 -translate-y-1/2"
+      className="absolute w-24 -translate-x-1/2 -translate-y-1/2 animate-fade-in"
       style={{
         top: position.top,
         left: position.left,

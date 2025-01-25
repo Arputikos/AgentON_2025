@@ -29,9 +29,9 @@ export function useParticipantStream(debateId: string | null) {
   const handleParticipantMessage = useCallback((data: any) => {
     console.log('🎭 Processing participant message:', data);
 
-    if (data.speakers) {
+    if (data.type === 'debate_config' && data.data?.speakers) {
       // Handle initial debate config
-      const newParticipants = data.speakers.map((speaker: any) => ({
+      const newParticipants = data.data.speakers.map((speaker: any) => ({
         id: speaker.uuid,
         name: speaker.name,
         role: speaker.title || speaker.expertise?.join(', ') || 'Expert',
@@ -44,32 +44,33 @@ export function useParticipantStream(debateId: string | null) {
 
       setStreamState(prev => ({
         ...prev,
-        participants: [...prev.participants, ...newParticipants],
+        participants: newParticipants,
         isInitializing: false
       }));
 
       console.log('👥 Added initial participants:', newParticipants.length);
-    } else if (data.status === 'success' && data.personas) {
-      // Handle streaming personas
-      const newParticipants = data.personas.map((persona: any) => ({
+    } else if (data.type === 'persona') {
+      // Handle streaming persona
+      const persona = data.data;
+      const newParticipant = {
         id: persona.uuid,
         name: persona.name,
         role: persona.title || 'Expert',
         avatar: persona.image_url,
-        expertise: [],
-        personality: '',
-        attitude: '',
-        debate_style: ''
-      }));
+        expertise: persona.expertise || [],
+        personality: persona.personality || '',
+        attitude: persona.attitude || '',
+        debate_style: persona.debate_style || ''
+      };
 
       setStreamState(prev => ({
         ...prev,
-        participants: [...prev.participants, ...newParticipants]
+        participants: [...prev.participants, newParticipant],
+        isInitializing: false
       }));
 
-      console.log('👤 Added streaming participants:', newParticipants.length);
-    } else if (data.status === 'participants_complete') {
-      // Handle completion of participant streaming
+      console.log('👤 Added new participant:', newParticipant.name);
+    } else if (data.type === 'participants_complete') {
       setStreamState(prev => ({
         ...prev,
         isInitializing: false

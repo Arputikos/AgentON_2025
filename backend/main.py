@@ -145,71 +145,17 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Generate personas
         personas_result = await rpea_agent.run(extrapolated_prompt)
-        personas_obj = personas_result.data
+        personas_obj = personas_result.data # persony do przesłania na ui - reszta zostaje na backendzie
 
-        # TODO: dodać statyczne role
+        # Send personas to client
+        for persona in personas_obj.personas:
+            await websocket.send_json({
+                "type": "persona",
+                "data": persona.model_dump()
+            })
+            print(f"Sent persona: {persona.name}")
 
-        # coordinator
-        coordinator_agent = Agent(
-            model=model,
-            system_prompt=coordinator_prompt
-        )
-        coordinator_persona = Persona(
-            uuid=uuid.uuid4(),
-            name="Coordinator",
-            title="Debate manager",
-            image_url=None,
-            description="Debate coordinator",
-            system_prompt=coordinator_prompt
-        )
-        personas_obj.personas.append(coordinator_persona)
-        
-        # moderator
-        moderator_agent = Agent(
-            model=model,
-            system_prompt=moderator_prompt
-        )
-        moderator_persona = Persona(
-            uuid=uuid.uuid4(),
-            name="Moderator",
-            title="Debate moderator",
-            image_url=None,
-            description="Debate moderator",
-            system_prompt=moderator_prompt
-        )
-        personas_obj.personas.append(moderator_persona)
-
-        # commentator
-        commentator_agent = Agent(
-            model=model,
-            system_prompt=commentator_prompt
-        )
-        commentator_persona = Persona(
-            uuid=uuid.uuid4(),
-            name="Commentator",
-            title="Debate commentator",
-            image_url=None,
-            description="Debate commentator",
-            system_prompt=commentator_prompt
-        )
-        personas_obj.personas.append(commentator_persona)        
-
-        # opening_agent
-        opening_agent = Agent(
-            model=model,
-            system_prompt=opening_agent_prompt
-        )
-        opening_persona = Persona(
-            uuid=uuid.uuid4(),
-            name="Opening",
-            title="Debate opening",
-            image_url=None,
-            description="Debate opening",
-            system_prompt=opening_agent_prompt
-        )
-        personas_obj.personas.append(opening_persona)   
-
-        # Send confirmation to client with persona details
+        # Send completion message
         await websocket.send_json({
             "type": "setup_complete",
             "status": "success",
@@ -217,6 +163,52 @@ async def websocket_endpoint(websocket: WebSocket):
         })
         print("Sent setup complete token")
         
+        # ROLE STATYCZNE
+        moderator_persona = Persona(
+            uuid=str(uuid.uuid4()),
+            name="Moderator",
+            title="Debate moderator",
+            image_url="https://ui-avatars.com/api/?name=Moderator",
+            description="Debate moderator",
+            system_prompt=moderator_prompt,
+            personality="Fair and authoritative",
+            expertise=["Debate moderation", "Conflict resolution"],
+            attitude="Impartial and firm",
+            background="Professional debate moderator",
+            debate_style="Balanced and controlled"
+        )
+
+        commentator_persona = Persona(
+            uuid=str(uuid.uuid4()),
+            name="Commentator",
+            title="Debate commentator",
+            image_url="https://ui-avatars.com/api/?name=Commentator",
+            description="Debate commentator",
+            system_prompt=commentator_prompt,
+            personality="Insightful and articulate",
+            expertise=["Debate analysis", "Public speaking"],
+            attitude="Observant and analytical",
+            background="Expert in debate commentary",
+            debate_style="Analytical and engaging"
+        )
+        personas_obj.personas.append(commentator_persona)        
+
+        opening_persona = Persona(
+            uuid=str(uuid.uuid4()),
+            name="Opening",
+            title="Debate opening",
+            image_url="https://ui-avatars.com/api/?name=Opening",
+            description="Debate opening",
+            system_prompt=opening_agent_prompt,
+            personality="Welcoming and clear",
+            expertise=["Public speaking", "Debate introduction"],
+            attitude="Professional and engaging",
+            background="Specialized in debate openings",
+            debate_style="Formal and welcoming"
+        )
+        personas_obj.personas.append(opening_persona)
+        
+        # SETUP ROMPTÓW DLA AGENTÓW 
         # Create the Prompt Crafter Agent
         prompt_crafter_agent = Agent(
             model=model,
@@ -224,7 +216,7 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=PromptCrafterPrompt
         )
         
-        # Generate system prompts for each persona and keep sending them to client
+        # Generate system prompts for each persona
         for persona in personas_obj.personas:
             persona_data = {
                 "name": persona.name,
@@ -236,7 +228,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         persona_list: List[Persona] = personas_obj.personas
 
-        # opening agent
+        # Generate opening statement
         opening_agent = Agent(
             model=model,
             system_prompt=opening_agent_prompt,
@@ -249,47 +241,17 @@ async def websocket_endpoint(websocket: WebSocket):
         
         while True:
             try:
-# Tu powinna wjechać pętla debaty
-
-                # debate_prompt = await websocket.receive_text()
-                # print(f"Received debate prompt: {debate_prompt}")
-                
-                # completion = client.chat.completions.create(
-                #     model="gpt-4",
-                #     messages=[
-                #         {
-                #             "role": "system", 
-                #             "content": "You are a debate moderator. Keep your opening statement concise, under 100 words."
-                #         },
-                #         {
-                #             "role": "user", 
-                #             "content": f"Provide a brief opening statement for a debate on: {debate_prompt}"
-                #         }
-                #     ],
-                #     stream=True
-                # )
-
-                # print("Starting to stream response...")
-                # for chunk in completion:
-                #     if hasattr(chunk.choices[0].delta, 'content'):
-                #         content = chunk.choices[0].delta.content
-                #         if content:
-                #             #print(f"Streaming chunk: {content}")
-                #             await websocket.send_text(content)
-                
-                # Send end marker
-        #        await websocket.send_text("__STREAM_END__")
-        #        print("Finished streaming response")
-                        
-        #    except WebSocketDisconnect:
-        #        print("Client disconnected")
-        #        break
-        #    except Exception as e:
-        #        print(f"Error processing message: {str(e)}")
-        #        await websocket.send_json({
-        #            "type": "error",
-        #            "message": str(e)
-        #        })
+                # Debate loop will go here
+                pass
+            except WebSocketDisconnect:
+                print("Client disconnected")
+                break
+            except Exception as e:
+                print(f"Error in debate loop: {str(e)}")
+                await websocket.send_json({
+                    "type": "error",
+                    "message": str(e)
+                })
                 
     except Exception as e:
         print(f"WebSocket error: {str(e)}")

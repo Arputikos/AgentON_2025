@@ -76,11 +76,21 @@ export default function DebateRoom() {
     isComplete ? topic : null
   );
 
+  // Add debug logging
+  useEffect(() => {
+    console.log('Current participants:', participants);
+    console.log('Initialization status:', { isInitializing, isComplete });
+  }, [participants, isInitializing, isComplete]);
+
   // Calculate positions for current participants
-  const speakers = participants.map((speaker, index) => ({
-    ...speaker,
-    position: calculatePosition(index, participants.length)
-  }));
+  const speakers = participants.map((speaker, index) => {
+    const position = calculatePosition(index, participants.length);
+    console.log(`Calculated position for ${speaker.name}:`, position);
+    return {
+      ...speaker,
+      position
+    };
+  });
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -136,15 +146,24 @@ export default function DebateRoom() {
               </div>
 
               {/* Speakers around the table */}
-              {speakers.map((speaker: Speaker) => (
-                <SpeakerCard
-                    key={speaker.id}
-                    name={speaker.name}
-                    role={speaker.role}
-                    avatar={speaker.avatar}
-                    position={speaker.position}
-                />
-                ))}
+              {speakers.length > 0 ? (
+                speakers.map((speaker: Speaker) => {
+                  console.log('Rendering speaker:', speaker);
+                  return (
+                    <SpeakerCard
+                      key={speaker.id}
+                      name={speaker.name}
+                      role={speaker.role}
+                      avatar={speaker.avatar}
+                      position={speaker.position!}
+                    />
+                  );
+                })
+              ) : (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  {isInitializing ? 'Loading speakers...' : 'No speakers yet'}
+                </div>
+              )}
             </div>
           </div>
 

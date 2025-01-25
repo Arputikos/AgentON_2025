@@ -94,11 +94,11 @@ export function useParticipantStream(debateId: string | null) {
           messages: [
             ...prev.messages,
             {
-              id: data.statement.uuid,
-              content: data.statement.content,
-              sender: data.statement.persona_uuid,
+              id: '1234',//TODO
+              content: data.data.content,
+              sender: data.data.name,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-              isComplete: false
+              isComplete: true
             }
           ]
         }));

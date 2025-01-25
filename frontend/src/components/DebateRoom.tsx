@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -9,9 +8,7 @@ import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useDebateStream } from '@/hooks/useDebateStream';
-
-const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
-type Position = typeof POSITIONS[number];
+import { useState } from 'react';
 
 interface Speaker {
   id: string;
@@ -19,7 +16,30 @@ interface Speaker {
   role: string;
   avatar: string;
   stance?: string;
-  position?: Position;
+  position?: {
+    top: string;
+    left: string;
+    transform: string;
+  };
+}
+
+function calculatePosition(index: number, total: number) {
+    // Calculate angle for this speaker (in radians)
+    // Subtract π/2 to start from top (instead of right)
+    const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
+    
+    // This ensures avatars sit exactly on the circle's edge
+    const radius = 30;
+    
+    // Calculate position using trigonometry
+    const top = `${50 + radius * Math.sin(angle)}%`;
+    const left = `${40 + radius * Math.cos(angle)}%`;
+    
+    return {
+      top,
+      left,
+      transform: `translate(-50%, -50%)`
+    };
 }
 
 interface DebateRoomProps {
@@ -28,24 +48,37 @@ interface DebateRoomProps {
 }
 
 export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
+  const [showChat, setShowChat] = useState(false);
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');
   const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
   const { isConnected } = useWebSocket();
   const { messages, streaming } = useDebateStream(prompt);
-  const [userInput, setUserInput] = useState<string>("");
 
   // Assign positions to speakers
   const speakers = participants.map((speaker, index) => ({
     ...speaker,
-    position: POSITIONS[index % POSITIONS.length] as Position
-  }));
+    position: calculatePosition(index, participants.length)
+  }))
 
   return (
     <div className="min-h-screen bg-gray-100">
 
         {/* Connection Status Indicator */}
-      <div className="fixed top-4 right-4">
+      <div className="fixed top-4 right-4 flex items-center gap-4">
+        {/* Chat Toggle */}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showChat}
+            onChange={(e) => setShowChat(e.target.checked)}
+            className="sr-only peer"
+          />
+          <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          <span className="text-sm font-medium text-gray-900">Show Chat</span>
+        </label>
+        
+        {/* Connection Status Dot */}
         <div className={`w-3 h-3 rounded-full ${
           isConnected ? 'bg-green-500' : 'bg-red-500'
         }`} />
@@ -66,7 +99,7 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
         </div>
       </header>
 
-      <main className="container mx-auto px-8 py-8 min-h-[calc(100vh-100px)]">
+      <main className="container mx-auto px-4 py-8 min-h-[calc(100vh-100px)]">
         <div className="grid grid-cols-12 gap-8 h-full">
           {/* Moderator Panel - Left Side */}
           <div className="col-span-3">
@@ -84,20 +117,22 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
               {/* Speakers around the table */}
               {speakers.map((speaker: Speaker) => (
                 <SpeakerCard
-                  key={speaker.id}
-                  name={speaker.name}
-                  role={speaker.role}
-                  avatar={speaker.avatar}
-                  position={speaker.position as 'top' | 'right' | 'bottom' | 'left'}
+                    key={speaker.id}
+                    name={speaker.name}
+                    role={speaker.role}
+                    avatar={speaker.avatar}
+                    position={speaker.position}
                 />
-              ))}
+                ))}
             </div>
           </div>
 
-          {/* Chat History - Right Side */}
-          <div className="col-span-3">
-            <ChatHistory messages={messages} />
-          </div>
+          {/* Chat History - only shown when toggled */}
+          {showChat && (
+            <div className="col-span-3">
+              <ChatHistory messages={messages} />
+            </div>
+          )}
         </div>
       </main>
     </div>

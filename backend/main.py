@@ -347,10 +347,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     )
                     stan_debaty["round_number"] += 1
                     stan_debaty["conversation_history"].append(next_focus)
-                    stan_debaty["current_speaker_uuid"] = str(moderator_persona.uuid) 
+                    stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = False
                 elif moderator_result.data.debate_status == "conclude":                    
-                    stan_debaty["current_speaker_uuid"] = str(moderator_persona.uuid) 
+                    stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = True 
                     # wyjście z pętli while
                     break                  

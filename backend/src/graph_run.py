@@ -1,3 +1,4 @@
+from typing import Dict
 from src.graph import graph
 from src.debate.models import DEFAULT_PERSONAS
 
@@ -20,19 +21,14 @@ config = {
         "thread_id": "1"  # TODO: This can be id of the round
     }}
 
-# graph.update_state(
-#     config,
-#     {"is_debate_finished": False}  # TODO: Initial state of the graph
-# )
-
-init_state = {  # TODO: AFAIK Graph needs this to start
+example_init_state = {   # Dictionary representation of DebateState
     "participants": DEFAULT_PERSONAS[:2],
     "conversation_history": [],
     "current_speaker_uuid": DEFAULT_PERSONAS[0].uuid,
     "is_debate_finished": False
 }
 
-def run_graph():    
+def run_graph(init_state: Dict):    
     while True:
         stream_graph_updates(init_state, config)
         snapshot = graph.get_state(config)

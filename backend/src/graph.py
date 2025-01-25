@@ -16,7 +16,7 @@ from pydantic_ai.models.openai import OpenAIModel
 
 from src.config import settings
 from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent
-from src.debate.prompts_models import CoordinatorOutput
+from src.debate.prompts_models import CoordinatorOutput, CommentatorOutput
 
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.commentator import commentator_prompt
@@ -67,10 +67,14 @@ model = OpenAIModel(
     api_key=settings.DEEPSEEK_API_KEY,
     # api_key=os.getenv("OPENAI_API_KEY")
 )
+
+# Agents
 commentator_agent = Agent(
-        model=model,
-        system_prompt=commentator_prompt
-    )
+    model=model,
+    system_prompt=commentator_prompt,
+    deps_type=ExtrapolatedPrompt,
+    result_type=CommentatorOutput  # or your specific CommentatorOutput type
+)
 
 coordinator_agent = Agent(
     model=model,
@@ -187,18 +191,13 @@ async def participant_agent(state: DebateState):
         debate_agent = Agent(
             model=model,
             system_prompt=persona.system_prompt,
-            deps_type=DebateContext,
+            deps_type=ExtrapolatedPrompt,
             result_type=ParticipantResponse
         )           
 
         @debate_agent.tool
-        async def search(ctx: RunContext[DebateContext], query: str) -> SearchToolResponse:
-            """Search the internet for relevant information.
-            
-            Args:
-                ctx: The context of the debate
-                query: The search query related to the debate topic
-            """
+        async def search(ctx: RunContext[ExtrapolatedPrompt], query: str) -> SearchToolResponse:
+            """Search the internet for relevant information."""
             try:
                 search_query = SearchQuery(                
                     queries=[query],
@@ -216,10 +215,10 @@ async def participant_agent(state: DebateState):
     conversation_history = format_conversation(state["conversation_history"])
 
     agent = create_agent(current_speaker_uuid)
-    context = DebateContext(
-        topic=state["topic"],
-        participants=[{"name": p.name} for p in state["participants"]],
-        conversation_history=conversation_history
+    context = ExtrapolatedPrompt(
+        prompt=str(state["extrapolated_prompt"]),
+        context=conversation_history,
+        topic=state["topic"]
     )
     
     agent_response = await agent.run(

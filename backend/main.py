@@ -278,8 +278,8 @@ async def websocket_endpoint(websocket: WebSocket):
             participants_queue=[]
         )
         
-        async def stream_graph_updates(input_messages: list[dict], config: dict):            
-            async for event in graph.astream(input_messages, config=config):
+        async def stream_graph_updates(input_message: dict, config: dict):            
+            async for event in graph.astream(input_message, config=config):
                 for state_update in event.values():
                     if not state_update:
                         continue
@@ -315,7 +315,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
             while True:  # Round loop
                 print("Round loop started")
-                await stream_graph_updates([init_state], config)  # Wrap init_state in a list
+                await stream_graph_updates(init_state, config)  # Remove the list wrapper
                 snapshot = graph.get_state(config)
                 if not snapshot.next:
                     break

@@ -289,6 +289,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         if persona:
                             reply = {
                                 "type": "message",
+<<<<<<< Updated upstream
                                 "data": {
                                     "name": persona.name,
                                     "content": last_statement.content
@@ -296,10 +297,15 @@ async def websocket_endpoint(websocket: WebSocket):
                             }
                             print(reply)
                             await websocket.send_json(reply)
+=======
+                                "statement": last_statement
+                            }
+                            print(reply)
+                            await websocket.send_json(json.dumps(reply))
+>>>>>>> Stashed changes
                         else:
-                            print(f"Persona not found for UUID: {last_statement.persona_uuid}")
-                            name = "Koordynator"
-                        
+                            print(f"Persona not found for UUID: {last_statement.persona_uuid}")                            
+                        name = persona.name if persona else "Koordynator"
                         reply = {
                             "name": name,
                             "content": last_statement.content

@@ -141,7 +141,7 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
         goto = "participant_agent"
 
     context_conversation = format_conversation(conversation_history)
-    context = f'Original topic of the debate: {state["extrapolated_prompt"]}. History of conversation: {context_conversation}'
+    context = f'Original topic of the debate: {state["extrapolated_prompt"]}. Always react to last message in the conversation! History of conversation: {context_conversation}'
     
     coordinator_output = await coordinator_agent.run(context)
     next_speaker_uuid = coordinator_output.data.next_speaker_uuid

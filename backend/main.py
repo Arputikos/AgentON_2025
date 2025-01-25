@@ -276,7 +276,7 @@ async def websocket_endpoint(websocket: WebSocket):
             comments_history = [],
             is_debate_finished = False
         )
-        stan_debaty["conversation_history"].append(opening_stmt)
+        stan_debaty.conversation_history.append(opening_stmt)
         
         async def stream_graph_updates(input_messages: list[dict], config: dict):
             async for event in graph.astream(input_messages, config=config):

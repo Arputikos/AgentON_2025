@@ -3,45 +3,45 @@
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 
 interface WebSocketContextType {
-  websocket: WebSocket | null;
+  socket: WebSocket | null;
   isConnected: boolean;
 }
 
-const WebSocketContext = createContext<WebSocketContextType>({ websocket: null, isConnected: false });
+const WebSocketContext = createContext<WebSocketContextType>({ socket: null, isConnected: false });
 
 export function WebSocketProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
-  const websocket = useRef<WebSocket | null>(null);
+  const socket = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!websocket.current) {
-      websocket.current = new WebSocket("ws://localhost:8000/debate");
+    if (!socket.current) {
+      socket.current = new WebSocket("ws://localhost:8000/debate");
       
-      websocket.current.onopen = () => {
+      socket.current.onopen = () => {
         console.log("WebSocket connected");
         setIsConnected(true);
       };
 
-      websocket.current.onerror = (error) => {
+      socket.current.onerror = (error) => {
         console.error("WebSocket error:", error);
         setIsConnected(false);
       };
 
-      websocket.current.onclose = () => {
+      socket.current.onclose = () => {
         console.log("WebSocket connection closed");
         setIsConnected(false);
       };
     }
 
     return () => {
-      if (websocket.current?.readyState === WebSocket.OPEN) {
-        websocket.current?.close();
+      if (socket.current?.readyState === WebSocket.OPEN) {
+        socket.current?.close();
       }
     };
   }, []);
 
   return (
-    <WebSocketContext.Provider value={{ websocket: websocket.current, isConnected }}>
+    <WebSocketContext.Provider value={{ socket: socket.current, isConnected }}>
       {children}
     </WebSocketContext.Provider>
   );

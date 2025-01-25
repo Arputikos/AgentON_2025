@@ -74,16 +74,16 @@ async def websocket_endpoint(websocket: WebSocket):
         
         while True:
             try:
-                # Wait for user message from WebSocket
-                user_message = await websocket.receive_text()
-                print(f"Received message: {user_message}")
+                # Wait for debate prompt from WebSocket
+                debate_prompt = await websocket.receive_text()
+                print(f"Received debate prompt: {debate_prompt}")
                 
                 # Create a streaming request to OpenAI
                 completion = client.chat.completions.create(
-                    model="gpt-4",  # Fixed model name
+                    model="gpt-4o",
                     messages=[
-                        {"role": "system", "content": "You are a poem writer."},
-                        {"role": "user", "content": user_message}
+                        {"role": "system", "content": "You are a debate moderator. Provide an opening statement for the debate."},
+                        {"role": "user", "content": f"Topic for debate: {debate_prompt}"}
                     ],
                     stream=True
                 )
@@ -92,7 +92,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 for chunk in completion:
                     delta = chunk.choices[0].delta
                     if delta and hasattr(delta, "content") and delta.content:
-                        print(delta.content, end="")
+                        print(f"Streaming: {delta.content}", end="")
                         await websocket.send_text(delta.content)
                         
             except WebSocketDisconnect:

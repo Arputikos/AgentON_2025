@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -30,7 +30,21 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');
   const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
-  const { isConnected } = useWebSocket();
+  const { isConnected, socket } = useWebSocket();
+  const [streaming, setStreaming] = useState(false);
+
+  // Add useEffect to send prompt when connected
+  useEffect(() => {
+    if (isConnected && socket && !streaming) {
+      setStreaming(true);
+      socket.send(prompt);
+
+      // Listen for streamed response
+      socket.addEventListener('message', (event: MessageEvent) => {
+        console.log('Received chunk:', event.data);
+      });
+    }
+  }, [isConnected, socket, prompt, streaming]);
 
   // Assign positions to speakers
   const speakers = participants.map((speaker, index) => ({

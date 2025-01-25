@@ -125,15 +125,16 @@ async def summarizer(state: DebateState):
 async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
     def everyone_has_spoken(participants_queue, next_speaker_no):
         try:
-            participants_queue[int(next_speaker_no)]
+            participants_queue[next_speaker_no]
         except IndexError:
             return True
         return False
     
-    participants = state["participants"]
     conversation_history = state["conversation_history"]
-    
-    if everyone_has_spoken(participants, conversation_history):
+
+    next_speaker_no = int(state["current_speaker_uuid"])
+    participants_queue = state["participants_queue"]
+    if everyone_has_spoken(participants_queue, next_speaker_no):
         goto = "summarizer"
     else:
         goto = "participant_agent"

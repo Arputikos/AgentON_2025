@@ -8,7 +8,6 @@ import { useSearchParams } from 'next/navigation';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
-import { useDebateStream } from '@/hooks/useDebateStream';
 import { useParticipantStream } from '@/hooks/useParticipantStream';
 
 function calculatePosition(index: number, total: number) {
@@ -25,7 +24,7 @@ function calculatePosition(index: number, total: number) {
 }
 
 export default function DebateRoom() {
-  const [showChat, setShowChat] = useState(false);
+  const [showChat, setShowChat] = useState(true);
   const searchParams = useSearchParams();
   const debateId = searchParams.get('state');
   const { isConnected } = useWebSocket();
@@ -51,14 +50,6 @@ export default function DebateRoom() {
       };
     });
   }, [participants]); // Only recalculate when participants array changes
-
-  useEffect(() => {
-    console.warn(messages);
-  }, [messages])
-
-  // const { messages, streaming } = useDebateStream(
-  //   isComplete && topic ? topic : null
-  // );
 
   // Add debug logging
   useEffect(() => {

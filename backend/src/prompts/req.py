@@ -1,5 +1,4 @@
 req_prompt = """
-
 **1. Context Enrichment Agent Requirements:**
 ```
 INPUT: Raw user prompt
@@ -81,39 +80,4 @@ FORMAT: Project management plan:
   "protocols": object
 }
 ```
-
-**5. Kierownik (Moderator) Requirements:**
-```
-INPUT: PM plan + Active debate
-OUTPUT REQUIREMENTS:
-- Turn management commands
-- Discussion steering prompts
-- Framework alignment checks
-- Conflict resolution directives
-FORMAT: Moderation commands:
-{
-  "current_turn": string,
-  "steering_prompt": string,
-  "alignment_check": boolean,
-  "resolution_needed": boolean
-}
-```
-
-**6. Komentator Requirements:**
-```
-INPUT: Each agent response
-OUTPUT REQUIREMENTS:
-- Key points extraction
-- Framework application analysis
-- Insight synthesis
-- Pattern identification
-- Progress tracking
-FORMAT: Structured commentary:
-{
-  "key_points": string[],
-  "framework_analysis": string,
-  "insights": string[],
-  "patterns": string[],
-  "progress": object
-}
 """

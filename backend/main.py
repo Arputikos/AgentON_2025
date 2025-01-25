@@ -29,6 +29,7 @@ from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPr
 from src.graph import graph, get_persona_by_uuid
 from src.graph import personas as const_personas
 from src.graph_run import config
+from langgraph.errors import GraphRecursionError
 
 import json
 from pathlib import Path
@@ -256,6 +257,15 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=OpeningPrompt
         )   
 
+        def data_to_frontend_payload(name: str, content: str):
+            return {
+                "type": "message",
+                "data": {
+                    "name": name,
+                    "content": content
+                }
+            }
+
         print("Opening")
 
         opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
@@ -266,6 +276,8 @@ async def websocket_endpoint(websocket: WebSocket):
             persona_uuid=str(opening_persona.uuid),
             timestamp=datetime.now()
         )
+
+        reply = data_to_frontend_payload("Opening commentator", opening_stmt.content)
         
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
@@ -275,7 +287,8 @@ async def websocket_endpoint(websocket: WebSocket):
             conversation_history=[opening_stmt],
             comments_history=[],
             is_debate_finished=False,
-            participants_queue=[]
+            participants_queue=[],
+            extrapolated_prompt=extrapolated_prompt
         )
         
         async def stream_graph_updates(input_message: dict, config: dict):            
@@ -287,6 +300,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         last_statement = state_update["conversation_history"][-1]
                         persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
                         if persona:
+<<<<<<< HEAD
                             reply = {
                                 "type": "message",
                                 "data": {
@@ -304,6 +318,14 @@ async def websocket_endpoint(websocket: WebSocket):
                             "name": name,
                             "content": last_statement.content
                         }
+=======
+                            name = persona.name
+                        else:
+                            print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Koordynator name")
+                            name = "Coordinator"
+                        
+                        reply = data_to_frontend_payload(name, last_statement.content)
+>>>>>>> develop
                         print(reply)
                         await websocket.send_json(reply)
                     except Exception as e:
@@ -326,7 +348,16 @@ async def websocket_endpoint(websocket: WebSocket):
 
             while True:  # Round loop
                 print("Round loop started")
+<<<<<<< HEAD
                 await stream_graph_updates(init_state, config)  # Remove the list wrapper
+=======
+                try:
+                    await stream_graph_updates(init_state, config)  # Remove the list wrapper
+                except GraphRecursionError as e:
+                    print(f"Hit recursion limit, breaking round loop")
+                    snapshot = graph.get_state(config)
+                    break
+>>>>>>> develop
                 snapshot = graph.get_state(config)
                 if not snapshot.next:
                     break
@@ -385,7 +416,7 @@ async def websocket_endpoint(websocket: WebSocket):
         commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)
             
         await websocket.send_json({
-            "status": "success",
+            "type": "final_message",
             "message": "Final synthesis generated",
             "commentator_result": commentator_result.data
         })

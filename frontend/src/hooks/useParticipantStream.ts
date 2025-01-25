@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-
+import { v7 } from 'uuid'
 interface Participant {
   id: string;
   name: string;
@@ -40,8 +40,11 @@ export function useParticipantStream(debateId: string | null) {
   const setupComplete = useRef(false);
 
   const handleParticipantMessage = useCallback((data: any) => {
+<<<<<<< HEAD
     // if (setupComplete.current) return; // This line is blocking all messages after setup
     
+=======
+>>>>>>> develop
     console.log('🎭 Processing participant message:', data);
 
     switch (data.type) {
@@ -103,9 +106,41 @@ export function useParticipantStream(debateId: string | null) {
         console.log('Processed message:', newMessage);
         setStreamState(prev => ({
           ...prev,
+<<<<<<< HEAD
           messages: [...prev.messages, newMessage]
         }));
+=======
+          messages: [
+            ...prev.messages,
+            {
+              id: v7(),
+              content: data.data.content,
+              sender: data.data.name,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+              isComplete: true
+            }
+          ]
+        }));
+        console.log('📝 Received message:', data.data.content);
+>>>>>>> develop
         break;
+
+      case 'final_message':
+          setStreamState(prev => ({
+            ...prev,
+            messages: [
+              ...prev.messages,
+              {
+                id: '1234',//TODO
+                content: data.commentator_result,
+                sender: "FINAL DEBATE RESULT",
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+                isComplete: true
+              }
+            ]
+          }));
+          console.log('📝 Received message:', data.statement.content);
+          break;
 
       case 'error':
         setStreamState(prev => ({

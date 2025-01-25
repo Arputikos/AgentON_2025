@@ -15,9 +15,8 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 
 from src.config import settings
-from src.debate.models import DebateState, Statement, Persona
+from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt
 from src.debate.prompts_models import CoordinatorOutput
-
 
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.commentator import commentator_prompt
@@ -62,9 +61,11 @@ commentator_agent = Agent(
         model=model,
         system_prompt=commentator_prompt
     )
+
 coordinator_agent = Agent(
     model=model,
     system_prompt=coordinator_prompt,
+    deps_type=ExtrapolatedPrompt,
     result_type=CoordinatorOutput
 )
 
@@ -123,20 +124,24 @@ async def summarizer(state: DebateState):
 
 
 async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
-    def everyone_has_spoken(participants, conversation_history):
-        participant_uuids = {participant.uuid for participant in participants}
-        speaker_uuids = {statement.persona_uuid for statement in conversation_history}
-        return participant_uuids.issubset(speaker_uuids)
+    def everyone_has_spoken(participants_queue, next_speaker_no):
+        try:
+            participants_queue[next_speaker_no]
+        except IndexError:
+            return True
+        return False
     
-    participants = state["participants"]
     conversation_history = state["conversation_history"]
-    
-    if everyone_has_spoken(participants, conversation_history):
+
+    next_speaker_no = int(state["current_speaker_uuid"])
+    participants_queue = state["participants_queue"]
+    if everyone_has_spoken(participants_queue, next_speaker_no):
         goto = "summarizer"
     else:
         goto = "participant_agent"
 
-    context = format_conversation(conversation_history)
+    context_conversation = format_conversation(conversation_history)
+    context = f'Original topic of the debate: {state["extrapolated_prompt"]}. Always react to last message in the conversation! History of conversation: {context_conversation}'
     
     coordinator_output = await coordinator_agent.run(context)
     next_speaker_uuid = coordinator_output.data.next_speaker_uuid

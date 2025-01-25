@@ -8,10 +8,12 @@ import openai
 import uvicorn
 from pydantic import BaseModel
 from fastapi import WebSocketDisconnect
-from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt
+from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
+from datetime import datetime, timedelta
+from uuid import uuid4
 
 # prompts
 from src.prompts.context import context_prompt
@@ -21,7 +23,7 @@ from src.prompts.opening import opening_agent_prompt
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
-from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningPrompt
+from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningPrompt, ModeratorOutput, CommentatorOutput
 
 import json
 from pathlib import Path
@@ -165,10 +167,6 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_obj.personas.append(coordinator_persona)
         
         # moderator
-        moderator_agent = Agent(
-            model=model,
-            system_prompt=moderator_prompt
-        )
         moderator_persona = Persona(
             uuid=uuid.uuid4(),
             name="Moderator",
@@ -180,10 +178,7 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_obj.personas.append(moderator_persona)
 
         # commentator
-        commentator_agent = Agent(
-            model=model,
-            system_prompt=commentator_prompt
-        )
+
         commentator_persona = Persona(
             uuid=uuid.uuid4(),
             name="Commentator",
@@ -245,10 +240,27 @@ async def websocket_endpoint(websocket: WebSocket):
         )   
 
         opening_result = await opening_agent.run("What is the opening for this debate?", deps=persona_list) 
-        opening_prompt = opening_result.data.system_prompt
+        opening_stmt: Statement = Statement(
+            uuid=str(uuid.uuid4()),
+            content=opening_result.data.system_prompt,
+            persona_uuid=str(opening_persona.uuid),
+            timestamp=datetime.now()
+        )
         
+        stan_debaty = DebateState(
+            topic = extrapolated_prompt.prompt,
+            participants = personas_obj.personas,
+            current_speaker_uuid = opening_persona.uuid,
+            round_number = 1,
+            conversation_history = [],
+            comments_history = [],
+            is_debate_finished = False
+        )
+        stan_debaty["conversation_history"].append(opening_stmt)
+
         while True:
             try:
+                pass
 # Tu powinna wjechać pętla debaty
 
                 # debate_prompt = await websocket.receive_text()
@@ -278,18 +290,60 @@ async def websocket_endpoint(websocket: WebSocket):
                 #             await websocket.send_text(content)
                 
                 # Send end marker
-        #        await websocket.send_text("__STREAM_END__")
-        #        print("Finished streaming response")
+                # await websocket.send_text("__STREAM_END__")
+                # print("Finished streaming response")
                         
-        #    except WebSocketDisconnect:
-        #        print("Client disconnected")
-        #        break
-        #    except Exception as e:
-        #        print(f"Error processing message: {str(e)}")
-        #        await websocket.send_json({
-        #            "type": "error",
-        #            "message": str(e)
-        #        })
+
+                moderator_agent = Agent(
+                    model=model,
+                    system_prompt=moderator_prompt,
+                    deps_type=DebateState,
+                    result_type=ModeratorOutput
+                )
+                moderator_result = await moderator_agent.run("Is the debate finished?", deps=stan_debaty)
+                print(f"Moderator result: {moderator_result}")
+                # Ocena czy koniec i ustawić zmienne w DebateState , licznik, stoper
+
+                if moderator_result.data.debate_status == "continue":
+                    next_focus:Statement = Statement(
+                        uuid=str(uuid.uuid4()),
+                        content=moderator_result.data.next_focus,
+                        persona_uuid=str(moderator_persona.uuid),
+                        timestamp=datetime.now()
+                    )
+                    stan_debaty["round_number"] += 1
+                    stan_debaty["conversation_history"].append(next_focus)
+                    stan_debaty["current_speaker_uuid"] = str(moderator_persona.uuid) 
+                    stan_debaty["is_debate_finished"] = False
+                elif moderator_result.data.debate_status == "conclude":                    
+                    stan_debaty["current_speaker_uuid"] = str(moderator_persona.uuid) 
+                    stan_debaty["is_debate_finished"] = True 
+                    # wyjście z pętli while
+                    break                  
+                else:
+                    raise ValueError(f"Invalid debate status: {moderator_result.data.debate_status}")
+                     
+            except WebSocketDisconnect:
+                print("Client disconnected")
+                break
+            except Exception as e:
+                print(f"Error processing message: {str(e)}")
+                await websocket.send_text(f"Error: {str(e)}")
+        
+        # komentator podsumowuje debatę
+        commentator_agent = Agent(
+            model=model,
+            system_prompt=commentator_prompt,
+            deps_type=DebateState,
+            result_type=CommentatorOutput
+        )
+        commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)
+            
+        await websocket.send_json({
+            "status": "success",
+            "message": "Final synthesis generated",
+            "commentator_result": commentator_result.data
+        })
                 
     except Exception as e:
         print(f"WebSocket error: {str(e)}")

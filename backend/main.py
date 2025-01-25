@@ -287,22 +287,18 @@ async def websocket_endpoint(websocket: WebSocket):
                         last_statement = state_update["conversation_history"][-1]
                         persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
                         if persona:
-                            reply = {
-                                "type": "message",
-                                "data": {
-                                    "name": persona.name,
-                                    "content": last_statement.content
-                                    }
-                            }
-                            print(reply)
+                            name = persona.name
                             await websocket.send_json(reply)
                         else:
-                            print(f"Persona not found for UUID: {last_statement.persona_uuid}")
+                            print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Koordynator name")
                             name = "Koordynator"
                         
                         reply = {
-                            "name": name,
-                            "content": last_statement.content
+                            "type": "message",
+                            "data": {
+                                "name": name,
+                                "content": last_statement.content
+                            }
                         }
                         print(reply)
                         await websocket.send_json(reply)

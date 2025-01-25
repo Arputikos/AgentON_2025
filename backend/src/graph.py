@@ -125,7 +125,7 @@ async def summarizer(state: DebateState):
 async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
     def everyone_has_spoken(participants_queue, next_speaker_no):
         try:
-            participants_queue[next_speaker_no]
+            participants_queue[int(next_speaker_no)]
         except IndexError:
             return True
         return False

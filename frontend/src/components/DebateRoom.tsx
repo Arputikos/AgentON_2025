@@ -27,22 +27,6 @@ interface Speaker {
   };
 }
 
-interface DebateConfig {
-  speakers: Array<{
-    uuid: string;
-    name: string;
-    title: string | null;
-    image_url: string;
-    description: string;
-    personality: string;
-    expertise: string[];
-    attitude: string;
-    background: string;
-    debate_style: string;
-  }>;
-  prompt: string;
-}
-
 function calculatePosition(index: number, total: number) {
     const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
     const radius = 30;

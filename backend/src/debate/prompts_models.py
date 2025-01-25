@@ -43,3 +43,19 @@ class CoordinatorPrompt(BaseModel):
     Coordinator prompt for the debate.
     """
     system_prompt: str = Field(..., description="System prompt for the coordinator")
+
+class ModeratorOutput(BaseModel):
+    """
+    Moderator output for the debate.
+    """
+    debate_status: str = Field(..., description="Status of the debate")
+    justifications: str = Field(..., description="Justifications for the status")
+    next_focus: str = Field(..., description="Next focus of the debate")
+
+class CommentatorOutput(BaseModel):
+    """
+    Commentator output for the debate.
+    """
+    key_themes: str = Field(..., description="Key themes of the debate")
+    actionable_takeaways: str = Field(..., description="Actionable takeaways of the debate")
+    future_recommendations: str = Field(..., description="Future recommendations of the debate")

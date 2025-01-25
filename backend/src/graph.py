@@ -12,11 +12,11 @@ from langgraph.checkpoint.memory import MemorySaver
 from debate.models import DebateState, Statement, Persona
 
 
-def show_bytes_image(bytes_image):
+def save_graph_image(bytes_image, filename):
     buffer = BytesIO(bytes_image)
     
     with Image.open(buffer) as img:
-        img.save('graph.png')
+        img.save(filename)
 
 
 def opening_agent(state: DebateState):
@@ -97,4 +97,4 @@ graph = graph_builder.compile(
 
 
 if __name__ == "__main__":
-    show_bytes_image(graph.get_graph().draw_mermaid_png())
+    save_graph_image(graph.get_graph().draw_mermaid_png(), "graph.png")

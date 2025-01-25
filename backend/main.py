@@ -278,7 +278,7 @@ async def websocket_endpoint(websocket: WebSocket):
             participants_queue=[]
         )
         
-        async def stream_graph_updates(input_messages: list[dict], config: dict):
+        async def stream_graph_updates(input_messages: list[dict], config: dict):            
             async for event in graph.astream(input_messages, config=config):
                 for state_update in event.values():
                     if not state_update:
@@ -328,7 +328,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,
-                    deps_type=DebateState,
+                    deps_type=dict,
                     result_type=ModeratorOutput
                 )
                 moderator_result = await moderator_agent.run("Is the debate finished?", deps=stan_debaty)
@@ -365,7 +365,7 @@ async def websocket_endpoint(websocket: WebSocket):
         commentator_agent = Agent(
             model=model,
             system_prompt=commentator_prompt,
-            deps_type=DebateState,
+            deps_type=dict,
             result_type=CommentatorOutput
         )
         commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)

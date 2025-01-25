@@ -292,7 +292,8 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         
         async def stream_graph_updates(input_message: dict, config: dict):            
-            async for event in graph.astream(input_message, config=config):
+            current_state = input_message
+            async for event in graph.astream(current_state, config=config):
                 for state_update in event.values():
                     if not state_update:
                         continue
@@ -308,6 +309,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         reply = data_to_frontend_payload(name, last_statement.content)
                         print(reply)
                         await websocket.send_json(reply)
+                        # Update current state with the new state
+                        current_state = state_update
                     except Exception as e:
                         print(e)
 

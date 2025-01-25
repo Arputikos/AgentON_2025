@@ -282,6 +282,7 @@ async def websocket_endpoint(websocket: WebSocket):
         )
 
         reply = data_to_frontend_payload("Opening commentator", opening_stmt.content)
+        await websocket.send_json(reply)
         
         stan_debaty = DebateState(
             topic=extrapolated_prompt,

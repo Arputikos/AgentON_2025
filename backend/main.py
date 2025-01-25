@@ -385,7 +385,7 @@ async def websocket_endpoint(websocket: WebSocket):
         commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)
             
         await websocket.send_json({
-            "status": "success",
+            "type": "final_message",
             "message": "Final synthesis generated",
             "commentator_result": commentator_result.data
         })

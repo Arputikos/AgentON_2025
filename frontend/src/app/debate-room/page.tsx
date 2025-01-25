@@ -1,19 +1,40 @@
-import { Metadata } from 'next';
+'use client';
+
 import DebateRoom from '@/components/DebateRoom';
+import { useSearchParams } from 'next/navigation';
+import Head from 'next/head';
 
-interface PageProps {
-  params: {
-    prompt: string;
-  };
+interface DebateState {
+  prompt: string;
+  participants: Array<{
+    id: string;
+    name: string;
+    role: string;
+    avatar: string;
+    stance: string;
+    position: string;
+  }>;
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const decodedPrompt = decodeURIComponent(params.prompt);
-  return {
-    title: `Debate: ${decodedPrompt} | Debate Arena`,
-  };
-}
+export default function DebatePage() {
+  const searchParams = useSearchParams();
+  const stateParam = searchParams.get('state');
+  
+  if (!stateParam) {
+    return <div>Error: No debate configuration found</div>;
+  }
 
-export default function DebatePage({ params }: PageProps) {
-  return <DebateRoom prompt={params.prompt} />;
+  const debateState: DebateState = JSON.parse(decodeURIComponent(stateParam));
+
+  return (
+    <>
+      <Head>
+        <title>{`Debate: ${debateState.prompt} | Debate Arena`}</title>
+      </Head>
+      <DebateRoom 
+        prompt={debateState.prompt}
+        participants={debateState.participants}
+      />
+    </>
+  );
 }

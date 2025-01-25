@@ -7,14 +7,20 @@ import { Crown, ArrowLeft } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useSearchParams } from 'next/navigation';
+import SpeakerCard from '@/components/SpeakerCard';
+import ModeratorCard from '@/components/ModeratorCard';
+import ChatHistory from '@/components/ChatHistory';
+
+const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
+type Position = typeof POSITIONS[number];
 
 interface Speaker {
-  id: number;
+  id: string;
   name: string;
   role: string;
   avatar: string;
-  stance: string;
-  position: string;
+  position?: Position;
+  stance?: string;
 }
 
 export default function DebateRoom() {
@@ -22,12 +28,16 @@ export default function DebateRoom() {
   const stateParam = searchParams.get('state');
   const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
 
-  const { prompt, participants, rounds, timePerRound } = debateState || {};
+  const { prompt, participants = [], rounds, timePerRound } = debateState || {};
+
+  // Assign positions to speakers
+  const speakers = participants.map((speaker: Speaker, index: number) => ({
+    ...speaker,
+    position: POSITIONS[index % POSITIONS.length] as Position
+  }));
 
   const [currentRound, setCurrentRound] = useState(1);
   const { isConnected } = useWebSocket();
-
-  const speakers: Speaker[] = participants || [];
 
   const [messages, setMessages] = useState<string[]>([]);
   const [userInput, setUserInput] = useState<string>("");
@@ -57,44 +67,15 @@ export default function DebateRoom() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <main className="container mx-auto px-8 py-8 min-h-[calc(100vh-100px)]">
+        <div className="grid grid-cols-12 gap-8 h-full">
           {/* Moderator Panel - Left Side */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="bg-purple-100 p-3 rounded-full">
-                  <Crown className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Moderator</h3>
-                  <p className="text-gray-600">Dr. Robert Maxwell</p>
-                </div>
-              </div>
-              <div className="border-t pt-4">
-                <h4 className="font-medium text-gray-900 mb-2">Round {currentRound} Summary</h4>
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h5 className="text-sm font-semibold text-gray-700 mb-2">Key Points</h5>
-                    <ul className="text-gray-600 text-sm space-y-2">
-                      <li>• Pro side emphasizes technological benefits</li>
-                      <li>• Con side raises ethical concerns</li>
-                      <li>• Discussion focused on implementation challenges</li>
-                    </ul>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <h5 className="text-sm font-semibold text-purple-700 mb-2">Moderator Notes</h5>
-                    <p className="text-purple-600 text-sm">
-                      The debate remains civil with strong arguments from both sides. Next round will focus on practical implications.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="col-span-3">
+            <ModeratorCard />
           </div>
 
-          {/* Debate Table - Right Side */}
-          <div className="lg:col-span-3 bg-white rounded-xl shadow-md p-8">
+          {/* Debate Table - Center */}
+          <div className="col-span-6 bg-white rounded-xl shadow-md p-8">
             <div className="relative w-full aspect-square">
               {/* Virtual Round Table */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -102,44 +83,21 @@ export default function DebateRoom() {
               </div>
 
               {/* Speakers around the table */}
-              {speakers.map((speaker) => {
-                const positions = {
-                  top: "top-0 left-1/2 -translate-x-1/2",
-                  right: "right-0 top-1/2 -translate-y-1/2",
-                  bottom: "bottom-0 left-1/2 -translate-x-1/2",
-                  left: "left-0 top-1/2 -translate-y-1/2"
-                };
-
-                return (
-                  <div
-                    key={speaker.id}
-                    className={`absolute ${positions[speaker.position as keyof typeof positions]} transform transition-transform duration-300`}
-                  >
-                    <div className="bg-white rounded-xl shadow-lg p-4 w-64">
-                      <div className="flex items-center space-x-4">
-                        <div className="relative w-16 h-16">
-                          <Image
-                            src={`${speaker.avatar}?w=100&h=100&fit=crop&crop=faces`}
-                            alt={speaker.name}
-                            fill
-                            className="rounded-full object-cover border-4 border-white shadow-md"
-                          />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">{speaker.name}</h3>
-                          <p className="text-gray-600 text-sm">{speaker.role}</p>
-                          <span className={`inline-block px-3 py-1 rounded-full text-sm mt-2 ${
-                            speaker.stance === 'Pro' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {speaker.stance}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {speakers.map((speaker: Speaker) => (
+                <SpeakerCard
+                  key={speaker.id}
+                  name={speaker.name}
+                  role={speaker.role}
+                  avatar={speaker.avatar}
+                  position={speaker.position as 'top' | 'right' | 'bottom' | 'left'}
+                />
+              ))}
             </div>
+          </div>
+
+          {/* Chat History - Right Side */}
+          <div className="col-span-3">
+            <ChatHistory />
           </div>
         </div>
       </main>

@@ -36,18 +36,13 @@ export default function Home() {
       const data = await response.json();
       
       if (data.debate_config && data.debate_config.speakers) {
-        const positions = ['top', 'right', 'bottom', 'left'];
-        const stances = ['Pro', 'Con', 'Pro', 'Con'];
-        
         const debateState = {
-          prompt: prompt.trim(),
-          participants: data.debate_config.speakers.map((speaker: Speaker, index: number) => ({
+          prompt: data.debate_config.prompt,
+          participants: data.debate_config.speakers.map((speaker: Speaker) => ({
             id: speaker.uuid,
             name: speaker.name,
             role: speaker.profession,
             avatar: speaker.image_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${speaker.name.toLowerCase().replace(' ', '-')}`,
-            stance: stances[index % stances.length],
-            position: positions[index % positions.length],
           }))
         };
 

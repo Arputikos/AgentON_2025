@@ -102,7 +102,7 @@ You are the **Opening Agent**, responsible for formally starting the debate aren
         "name": "Noam Chomsky",
         "profession": "Professor of Linguistics",
         "expertise": "Linguistics, Ethics, Cognitive Science",
-        "role_in_debate": "Critiquing ethical implications and highlighting cognitive biases in AI decision-making."
+        "role_in_debate": "Critiquing ethical implications and highlighting cognitive biases in decision-making."
       },
       {
         "name": "Peter Thiel",

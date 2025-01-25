@@ -32,11 +32,14 @@ class PromptCrafterPrompt(BaseModel):
     response: str = Field(..., description="Response of the persona")
     system_prompt: str = Field(..., description="System prompt for the persona")
 
-class OpeningPrompt(BaseModel):
+class OpeningOutput(BaseModel):
     """
-    Opening prompt for the debate.
+    Opening statement for the debate.
     """
-    system_prompt: str = Field(..., description="System prompt for the opening")
+    opening: str = Field(..., description="Opening statement")
+    welcome_message: str = Field(..., description="Welcome message")
+    topic_introduction: str = Field(..., description="Topic introduction")
+    personas_introduction: List[Persona] = Field(..., description="Personas introduction")
 
 class CoordinatorPrompt(BaseModel):
     """

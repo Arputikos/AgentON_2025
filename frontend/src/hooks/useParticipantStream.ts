@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
 interface Participant {
@@ -37,39 +37,23 @@ export function useParticipantStream(debateId: string | null) {
     topic: null,
     messages: []
   });
+  const setupComplete = useRef(false);
 
   const handleParticipantMessage = useCallback((data: any) => {
+    if (setupComplete.current) return; // Ignore messages after setup is complete
+    
     console.log('🎭 Processing participant message:', data);
 
     switch (data.type) {
       case 'debate_topic':
-        setStreamState(prev => ({
-          ...prev,
-          topic: data.data.topic
-        }));
-        console.log('📝 Received debate topic:', data.data.topic);
-        break;
-
-      case 'debate_config':
-        if (data.data?.speakers) {
-          const newParticipants = data.data.speakers.map((speaker: any) => ({
-            id: speaker.uuid,
-            name: speaker.name,
-            role: speaker.title || speaker.expertise?.join(', ') || 'Expert',
-            avatar: speaker.image_url,
-            expertise: speaker.expertise,
-            personality: speaker.personality,
-            attitude: speaker.attitude,
-            debate_style: speaker.debate_style
-          }));
-
-          setStreamState(prev => ({
+        setStreamState(prev => {
+          console.log('📝 Setting topic:', data.data.topic);
+          return {
             ...prev,
-            participants: newParticipants,
-            isInitializing: false
-          }));
-          console.log('👥 Added initial participants:', newParticipants.length);
-        }
+            topic: data.data.topic,
+            isInitializing: true
+          };
+        });
         break;
 
       case 'persona':
@@ -88,17 +72,20 @@ export function useParticipantStream(debateId: string | null) {
         setStreamState(prev => ({
           ...prev,
           participants: [...prev.participants, newParticipant],
-          isInitializing: false
+          isInitializing: true
         }));
         console.log('👤 Added new participant:', newParticipant.name);
         break;
 
       case 'setup_complete':
-        setStreamState(prev => ({
-          ...prev,
-          isInitializing: false
-        }));
-        console.log('✅ Participant streaming complete');
+        setupComplete.current = true; // Mark setup as complete
+        setStreamState(prev => {
+          console.log('✅ Setup complete, current topic:', prev.topic);
+          return {
+            ...prev,
+            isInitializing: false
+          };
+        });
         break;
 
       case 'message':
@@ -130,7 +117,13 @@ export function useParticipantStream(debateId: string | null) {
   }, []);
 
   useEffect(() => {
-    if (!socket || !debateId || !isConnected) return;
+    if (!socket || !debateId || !isConnected || setupComplete.current) return;
+
+    console.log('🔌 Connecting with debate ID:', debateId);
+    
+    socket.send(JSON.stringify({
+      debate_id: debateId.replace(/"/g, '')
+    }));
 
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -148,21 +141,18 @@ export function useParticipantStream(debateId: string | null) {
 
     socket.addEventListener('message', handleMessage);
 
-    socket.send(JSON.stringify({
-      type: 'join_debate',
-      debate_id: debateId
-    }));
-
     console.log('🔌 Initialized participant stream for debate:', debateId);
 
     return () => {
-      socket.removeEventListener('message', handleMessage);
-      console.log('🔌 Cleaned up participant stream');
+      if (!setupComplete.current) { // Only cleanup if setup isn't complete
+        socket.removeEventListener('message', handleMessage);
+        console.log('🔌 Cleaned up participant stream');
+      }
     };
   }, [socket, debateId, isConnected, handleParticipantMessage]);
 
   return {
     ...streamState,
-    isComplete: !streamState.isInitializing && !streamState.error
+    isComplete: setupComplete.current && streamState.topic !== null
   };
 } 

@@ -298,7 +298,7 @@ async def websocket_endpoint(websocket: WebSocket):
             is_debate_finished = False
         )
         stan_debaty["conversation_history"].append(opening_stmt)
-
+        
         print("Loop started")
 
         while True:

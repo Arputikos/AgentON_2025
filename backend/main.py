@@ -70,42 +70,51 @@ async def websocket_endpoint(websocket: WebSocket):
     WebSocket endpoint that handles the debate and streams responses.
     """
     try:
+        print("New WebSocket connection attempt...")
         await websocket.accept()
+        print("WebSocket connection accepted")
         
         while True:
             try:
-                # Wait for debate prompt from WebSocket
                 debate_prompt = await websocket.receive_text()
                 print(f"Received debate prompt: {debate_prompt}")
                 
-                # Create a streaming request to OpenAI
                 completion = client.chat.completions.create(
-                    model="gpt-4o",
+                    model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are a debate moderator. Provide an opening statement for the debate."},
-                        {"role": "user", "content": f"Topic for debate: {debate_prompt}"}
+                        {
+                            "role": "system", 
+                            "content": "You are a debate moderator. Keep your opening statement concise, under 100 words."
+                        },
+                        {
+                            "role": "user", 
+                            "content": f"Provide a brief opening statement for a debate on: {debate_prompt}"
+                        }
                     ],
                     stream=True
                 )
 
-                # Stream chunks to the WebSocket client
+                print("Starting to stream response...")
                 for chunk in completion:
-                    delta = chunk.choices[0].delta
-                    if delta and hasattr(delta, "content") and delta.content:
-                        print(f"Streaming: {delta.content}", end="")
-                        await websocket.send_text(delta.content)
+                    if hasattr(chunk.choices[0].delta, 'content'):
+                        content = chunk.choices[0].delta.content
+                        if content:
+                            print(f"Streaming chunk: {content}")
+                            await websocket.send_text(content)
+                
+                # Send end marker
+                await websocket.send_text("__STREAM_END__")
+                print("Finished streaming response")
                         
             except WebSocketDisconnect:
                 print("Client disconnected")
                 break
             except Exception as e:
-                print(f"Error processing message: {e}")
+                print(f"Error processing message: {str(e)}")
                 await websocket.send_text(f"Error: {str(e)}")
                 
     except Exception as e:
-        print(f"WebSocket error: {e}")
-    
-    # No need to explicitly close - the connection is already closed
+        print(f"WebSocket error: {str(e)}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
+import { useDebateStream } from '@/hooks/useDebateStream';
 
 const POSITIONS = ['top', 'right', 'bottom', 'left'] as const;
 type Position = typeof POSITIONS[number];
@@ -30,30 +31,15 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');
   const debateState = stateParam ? JSON.parse(decodeURIComponent(stateParam)) : null;
-  const { isConnected, socket } = useWebSocket();
-  const [streaming, setStreaming] = useState(false);
-
-  // Add useEffect to send prompt when connected
-  useEffect(() => {
-    if (isConnected && socket && !streaming) {
-      setStreaming(true);
-      socket.send(prompt);
-
-      // Listen for streamed response
-      socket.addEventListener('message', (event: MessageEvent) => {
-        console.log('Received chunk:', event.data);
-      });
-    }
-  }, [isConnected, socket, prompt, streaming]);
+  const { isConnected } = useWebSocket();
+  const { messages, streaming } = useDebateStream(prompt);
+  const [userInput, setUserInput] = useState<string>("");
 
   // Assign positions to speakers
   const speakers = participants.map((speaker, index) => ({
     ...speaker,
     position: POSITIONS[index % POSITIONS.length] as Position
   }));
-
-  const [messages, setMessages] = useState<string[]>([]);
-  const [userInput, setUserInput] = useState<string>("");
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -110,7 +96,7 @@ export default function DebateRoom({ prompt, participants }: DebateRoomProps) {
 
           {/* Chat History - Right Side */}
           <div className="col-span-3">
-            <ChatHistory />
+            <ChatHistory messages={messages} />
           </div>
         </div>
       </main>

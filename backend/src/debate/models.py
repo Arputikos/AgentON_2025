@@ -187,7 +187,7 @@ class SearchQuery(BaseModel):
     query_id: str = Field(description="Unique identifier for the search query")
 
 class SearchResult(BaseModel):
-    query_id: int = Field(description="Unique identifier for the search query")
+    query_id: str = Field(description="Unique identifier for the search query")
     urls: list[str] = Field(description="List of relevant URLs found")
 
 class WebContent(BaseModel):

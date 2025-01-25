@@ -199,12 +199,16 @@ async def participant_agent(state: DebateState):
                 ctx: The context of the debate
                 query: The search query related to the debate topic
             """
-            search_query = SearchQuery(                
-                queries=[query],
-                query_id=str(uuid4())
-            )
-            results = await websearch(search_query)
-            return SearchToolResponse(web_contents=results)
+            try:
+                search_query = SearchQuery(                
+                    queries=[query],
+                    query_id=str(uuid4())
+                )
+                results = await websearch(search_query)
+                return SearchToolResponse(web_contents=results)
+            except Exception as e:
+                print(f"Error searching: {e}")
+                return SearchToolResponse(web_contents=[])
         return debate_agent
         
     current_speaker_no = int(state["current_speaker_uuid"])
@@ -215,7 +219,7 @@ async def participant_agent(state: DebateState):
     context = DebateContext(
         topic=state["topic"],
         participants=[{"name": p.name} for p in state["participants"]],
-        conversation_history=conversation_history[-3:]
+        conversation_history=conversation_history
     )
     
     agent_response = await agent.run(

@@ -40,12 +40,13 @@ export function useParticipantStream(debateId: string | null) {
   const setupComplete = useRef(false);
 
   const handleParticipantMessage = useCallback((data: any) => {
-    if (setupComplete.current) return; // Ignore messages after setup is complete
+    // if (setupComplete.current) return; // This line is blocking all messages after setup
     
     console.log('🎭 Processing participant message:', data);
 
     switch (data.type) {
       case 'debate_topic':
+        if (setupComplete.current) return; // Only block topic changes after setup
         setStreamState(prev => {
           console.log('📝 Setting topic:', data.data.topic);
           return {
@@ -57,6 +58,7 @@ export function useParticipantStream(debateId: string | null) {
         break;
 
       case 'persona':
+        if (setupComplete.current) return; // Only block new participants after setup
         const persona = data.data;
         const newParticipant = {
           id: persona.uuid,
@@ -78,6 +80,7 @@ export function useParticipantStream(debateId: string | null) {
         break;
 
       case 'setup_complete':
+        if (setupComplete.current) return; // Only handle setup once
         setupComplete.current = true; // Mark setup as complete
         setStreamState(prev => {
           console.log('✅ Setup complete, current topic:', prev.topic);
@@ -89,20 +92,19 @@ export function useParticipantStream(debateId: string | null) {
         break;
 
       case 'message':
+        console.log('Raw message data received:', data);
+        const newMessage = {
+          id: data.statement.uuid,
+          content: data.statement.content,
+          sender: data.statement.persona_uuid,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+          isComplete: false
+        };
+        console.log('Processed message:', newMessage);
         setStreamState(prev => ({
           ...prev,
-          messages: [
-            ...prev.messages,
-            {
-              id: data.statement.uuid,
-              content: data.statement.content,
-              sender: data.statement.persona_uuid,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-              isComplete: false
-            }
-          ]
+          messages: [...prev.messages, newMessage]
         }));
-        console.log('📝 Received message:', data.statement.content);
         break;
 
       case 'error':

@@ -51,8 +51,6 @@ export default function DebateRoom() {
     });
   }, [participants]); // Only recalculate when participants array changes
 
-
-
   // Add debug logging
   useEffect(() => {
     console.log('Current participants:', participants);

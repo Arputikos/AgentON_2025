@@ -341,7 +341,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 if moderator_result.data.debate_status == "continue":
                     next_focus: Statement = Statement(
                         uuid=str(uuid.uuid4()),
-                        content=moderator_result.data.next_focus,
+                        content=str(moderator_result.data.next_focus),
                         persona_uuid=str(moderator_persona.uuid),
                         timestamp=datetime.now()
                     )

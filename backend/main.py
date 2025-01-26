@@ -1,19 +1,15 @@
 from datetime import datetime
-import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
 from openai import OpenAI
-import openai
 import uvicorn
 from pydantic import BaseModel
-from fastapi import WebSocketDisconnect
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import uuid4
 
 # prompts
@@ -21,10 +17,9 @@ from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
 from src.prompts.opening import opening_agent_prompt
-from src.prompts.coordinator import coordinator_prompt
 from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
-from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningOutput, ModeratorOutput, CommentatorOutput
+from src.debate.prompts_models import OpeningContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
 from src.graph import graph, get_persona_by_uuid
 from src.graph import personas as const_personas
@@ -67,14 +62,13 @@ async def process_prompt(request: PromptRequest):
     """
     API endpoint that processes user prompt and returns debate configuration.
     """
+    print("Received prompt:", request.prompt)
     try:
-        print("Received prompt:", request.prompt)
-
         # Create the Context Enrichment Agent
         context_agent = Agent(
             model=model,
             system_prompt=context_prompt,
-            result_type=ContextPrompt
+            result_type=OpeningContextOutput
         )
         
         # Process through Context Enrichment Agent
@@ -111,7 +105,11 @@ async def process_prompt(request: PromptRequest):
 
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):
+    print("New WebSocket connection attempt...")
     try:
+        await websocket.accept()
+        print("WebSocket connection accepted")
+        
         def data_to_frontend_payload(name: str, content: str):
             return {
                 "type": "message",
@@ -120,10 +118,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     "content": content
                 }
             }
-        
-        print("New WebSocket connection attempt...")
-        await websocket.accept()
-        print("WebSocket connection accepted")
         
         # Read initial message with debate_id
         initial_message = await websocket.receive_json()
@@ -158,7 +152,7 @@ async def websocket_endpoint(websocket: WebSocket):
         rpea_agent = Agent(
             model=model,
             system_prompt=rpea_prompt,
-            result_type=RPEAPrompt
+            result_type=RPEAOutput
         )
         
         # Generate personas
@@ -195,13 +189,11 @@ async def websocket_endpoint(websocket: WebSocket):
         })
         print("Sent setup complete token")
 
-
         ###
         ### CLIENT HAS BEEN INITIALIZED CAN START THE DEBATE
         ###
 
-        
-        # moderator
+        # Insert moderator and opening personas
         moderator_persona = Persona(
             uuid=str(uuid.uuid4()),
             name="Moderator",
@@ -216,9 +208,7 @@ async def websocket_endpoint(websocket: WebSocket):
             debate_style="Balanced and controlled"
         )
         personas_obj.personas.append(moderator_persona)
-    
 
-        # opening persona
         opening_persona = Persona(
             uuid=str(uuid.uuid4()),
             name="Opening",
@@ -241,19 +231,16 @@ async def websocket_endpoint(websocket: WebSocket):
         prompt_crafter_agent = Agent(
             model=model,
             system_prompt=prompt_crafter_prompt,
-            result_type=PromptCrafterPrompt
+            result_type=PromptCrafterOutput
         )
         
         # Generate system prompts for each persona
         for persona in personas_obj.personas:
-            persona_data = {
-                "name": persona.name,
-                "title": persona.title,
-                "description": persona.description
-            }
+            persona_data = persona.print_persona_as_json()
             print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
+            print(f"Persona system prompt: {persona.system_prompt}")
 
         personas_obj.personas.extend(const_personas)
         persona_list: List[Persona] = personas_obj.personas
@@ -308,7 +295,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         if persona:
                             name = persona.name
                         else:
-                            print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Koordynator name")
+                            print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Coordinator name")
                             name = "Coordinator"
                         
                         reply = data_to_frontend_payload(name, last_statement.content)
@@ -320,37 +307,27 @@ async def websocket_endpoint(websocket: WebSocket):
                         print(e)
 
         while True:  # Debate loop
-            print("Debate loop started")
-
-            personas_uuids = [persona.uuid for persona in debate_personas]
-            random.shuffle(personas_uuids)
-            stan_debaty["participants_queue"] = personas_uuids
-            # init_state = {
-            #     "participants": debate_personas,
-            #     "conversation_history": [opening_statement],
-            #     "current_speaker_uuid": "",
-            #     "participants_queue": personas_uuids,
-            #     "is_debate_finished": False
-            # }
-            init_state = dict(stan_debaty)
-
-            while True:  # Round loop
-                print("Round loop started")
-                try:
-                    await stream_graph_updates(init_state, config)  # Remove the list wrapper
-                except GraphRecursionError as e:
-                    print(f"Hit recursion limit, breaking round loop")
-                    snapshot = graph.get_state(config)
-                    break
-                snapshot = graph.get_state(config)
-                if not snapshot.next:
-                    break
-            
-            stan_debaty = snapshot.values
-
             try:
-                pass
-        
+                print("Debate loop started")
+                personas_uuids = [persona.uuid for persona in debate_personas]
+                random.shuffle(personas_uuids)
+                stan_debaty["participants_queue"] = personas_uuids
+                init_state = dict(stan_debaty)
+
+                while True:  # Round loop
+                    print("Round loop started")
+                    try:
+                        await stream_graph_updates(init_state, config)
+                    except GraphRecursionError:
+                        print("Hit recursion limit, breaking round loop")
+                        snapshot = graph.get_state(config)
+                        break
+                    snapshot = graph.get_state(config)
+                    if not snapshot.next:
+                        break
+                
+                stan_debaty = snapshot.values
+
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,
@@ -359,10 +336,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
                 moderator_result = await moderator_agent.run("Is the debate finished?", deps=stan_debaty)
                 print(f"Moderator result: {moderator_result}")
-                # Ocena czy koniec i ustawić zmienne w DebateState , licznik, stoper
+                # Evaluate debate status
 
                 if moderator_result.data.debate_status == "continue":
-                    next_focus:Statement = Statement(
+                    next_focus: Statement = Statement(
                         uuid=str(uuid.uuid4()),
                         content=moderator_result.data.next_focus,
                         persona_uuid=str(moderator_persona.uuid),
@@ -375,36 +352,38 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif moderator_result.data.debate_status == "conclude":                    
                     stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = True 
-                    # wyjście z pętli while
-                    break                  
+                    break
                 else:
                     raise ValueError(f"Invalid debate status: {moderator_result.data.debate_status}")
                      
             except WebSocketDisconnect:
-                print("Client disconnected")
-                break
+                raise  # Re-raise to be handled by outer try
             except Exception as e:
-                print(f"Error processing message: {str(e)}")
+                print(f"Error in debate loop: {str(e)}")
                 await websocket.send_json({
                     "type": "error",
                     "message": str(e)
                 })
+                break  # Exit debate loop on error
         
-        # komentator podsumowuje debatę
-        commentator_agent = Agent(
-            model=model,
-            system_prompt=commentator_prompt,
-            deps_type=dict,
-            result_type=CommentatorOutput
-        )
-        commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)
-            
-        await websocket.send_json({
-            "type": "final_message",
-            "message": "Final synthesis generated",
-            "commentator_result": commentator_result.data
-        })
+        # Final synthesis outside the debate loop
+        if stan_debaty.get("is_debate_finished"):
+            commentator_agent = Agent(
+                model=model,
+                system_prompt=commentator_prompt,
+                deps_type=dict,
+                result_type=CommentatorOutput
+            )
+            commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)
                 
+            await websocket.send_json({
+                "type": "final_message",
+                "message": "Final synthesis generated",
+                "commentator_result": commentator_result.data
+            })
+
+    except WebSocketDisconnect:
+        print("Client disconnected")
     except Exception as e:
         print(f"WebSocket error: {str(e)}")
         if not websocket.client_state.DISCONNECTED:
@@ -412,6 +391,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 "type": "error",
                 "message": str(e)
             })
+    finally:
+        if not websocket.client_state.DISCONNECTED:
+            await websocket.close()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

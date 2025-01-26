@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic.networks import HttpUrl
 from src.debate.models import Persona
 
-class ContextPrompt(BaseModel):
+class OpeningContextOutput(BaseModel):
     """
     Context prompt for the debate.
     """
@@ -17,13 +17,13 @@ class ContextPrompt(BaseModel):
     modular_components: str = Field(..., description="Modular components of the debate")
     deep_dive_modules: str = Field(..., description="Deep dive modules of the debate")
 
-class RPEAPrompt(BaseModel):
+class RPEAOutput(BaseModel):
     """
     RPEA prompt for the debate.
     """
     personas: List[Persona] = Field(..., description="List of personas for the debate")
 
-class PromptCrafterPrompt(BaseModel):
+class PromptCrafterOutput(BaseModel):
     """
     Prompt crafter prompt for the debate.
     """

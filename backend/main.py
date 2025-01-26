@@ -1,11 +1,8 @@
 from datetime import datetime
-import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio
 from openai import OpenAI
-import openai
 import uvicorn
 from pydantic import BaseModel
 from fastapi import WebSocketDisconnect
@@ -13,7 +10,7 @@ from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERS
 from src.config import settings
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import uuid4
 
 # prompts
@@ -21,10 +18,9 @@ from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
 from src.prompts.opening import opening_agent_prompt
-from src.prompts.coordinator import coordinator_prompt
 from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
-from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningOutput, ModeratorOutput, CommentatorOutput
+from src.debate.prompts_models import OpeningContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
 from src.graph import graph, get_persona_by_uuid
 from src.graph import personas as const_personas
@@ -74,7 +70,7 @@ async def process_prompt(request: PromptRequest):
         context_agent = Agent(
             model=model,
             system_prompt=context_prompt,
-            result_type=ContextPrompt
+            result_type=OpeningContextOutput
         )
         
         # Process through Context Enrichment Agent
@@ -158,7 +154,7 @@ async def websocket_endpoint(websocket: WebSocket):
         rpea_agent = Agent(
             model=model,
             system_prompt=rpea_prompt,
-            result_type=RPEAPrompt
+            result_type=RPEAOutput
         )
         
         # Generate personas
@@ -241,7 +237,7 @@ async def websocket_endpoint(websocket: WebSocket):
         prompt_crafter_agent = Agent(
             model=model,
             system_prompt=prompt_crafter_prompt,
-            result_type=PromptCrafterPrompt
+            result_type=PromptCrafterOutput
         )
         
         # Generate system prompts for each persona

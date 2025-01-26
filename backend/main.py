@@ -246,6 +246,7 @@ async def websocket_endpoint(websocket: WebSocket):
             print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
+            print(f"Persona system prompt: {persona.system_prompt}")
 
         personas_obj.personas.extend(const_personas)
         persona_list: List[Persona] = personas_obj.personas

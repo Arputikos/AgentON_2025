@@ -60,6 +60,18 @@ class Persona(BaseModel):
             return f"https://api.dicebear.com/7.x/avataaars/svg?seed={encoded_name}"
         except Exception:
             return f"https://ui-avatars.com/api/?background=random&name={name.replace(' ', '+')}"
+    
+    def print_persona_as_json(self):
+        return {
+            "name": self.name,
+            "title": self.title,
+            "description": self.description,
+            "personality": self.personality,
+            "expertise": self.expertise,
+            "attitude": self.attitude,
+            "background": self.background,
+            "debate_style": self.debate_style
+        }
 
     @property
     def system_prompt(self) -> str:

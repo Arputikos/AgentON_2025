@@ -242,11 +242,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Generate system prompts for each persona
         for persona in personas_obj.personas:
-            persona_data = {
-                "name": persona.name,
-                "title": persona.title,
-                "description": persona.description
-            }
+            persona_data = persona.print_persona_as_json()
             print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt

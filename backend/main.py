@@ -24,7 +24,7 @@ from src.prompts.opening import opening_agent_prompt
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
-from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterPrompt, OpeningOutput, ModeratorOutput, CommentatorOutput
+from src.debate.prompts_models import ContextPrompt, RPEAPrompt, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
 from src.graph import graph, get_persona_by_uuid
 from src.graph import personas as const_personas
@@ -144,8 +144,30 @@ async def websocket_endpoint(websocket: WebSocket):
             
         # Load debate configuration and prompt
         with open(prompt_file) as f:
-            prompt_data = json.load(f)
-            extrapolated_prompt = prompt_data.get("prompt")
+            try:
+                prompt_data = json.load(f)
+                enriched_data = prompt_data.get("enriched_data", {})
+                
+                extrapolated_prompt = ExtrapolatedPrompt(
+                    prompt=prompt_data.get("prompt", ""),
+                    topic=enriched_data.get("enriched_input", ""),
+                    context="\n".join(filter(None, [
+                        enriched_data.get("layered_scope", ""),
+                        enriched_data.get("dynamic_functionalities", ""),
+                        enriched_data.get("modular_components", ""),
+                        enriched_data.get("deep_dive_modules", "")
+                    ]))
+                )
+                
+                if not extrapolated_prompt.prompt:
+                    raise ValueError("Prompt data is missing required 'prompt' field")
+                if not extrapolated_prompt.topic:
+                    raise ValueError("Enriched data is missing required 'enriched_input' field")
+                    
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON in prompt file: {e}")
+            except Exception as e:
+                raise ValueError(f"Error processing prompt data: {e}")
             
         with open(config_file) as f:
             config_data = json.load(f)
@@ -158,14 +180,14 @@ async def websocket_endpoint(websocket: WebSocket):
         rpea_agent = Agent(
             model=model,
             system_prompt=rpea_prompt,
+            deps_type=ExtrapolatedPrompt,
             result_type=RPEAPrompt
         )
         
         # Generate personas
-        personas_result = await rpea_agent.run(extrapolated_prompt)
+        personas_result = await rpea_agent.run("Generate personas for the debate", deps=extrapolated_prompt)
         personas_obj = personas_result.data
         debate_personas = personas_obj.personas.copy()
-
 
         ###
         ### SEND THE TOPIC OF THE DEBATE AND THE PARTICIPANTS TO THE CLIENT 
@@ -175,7 +197,9 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_json({
             "type": "debate_topic",
             "data": {
-                "topic": extrapolated_prompt
+                "topic": extrapolated_prompt.topic,
+                "context": extrapolated_prompt.context,
+                "prompt": extrapolated_prompt.prompt
             }
         })
 
@@ -241,7 +265,7 @@ async def websocket_endpoint(websocket: WebSocket):
         prompt_crafter_agent = Agent(
             model=model,
             system_prompt=prompt_crafter_prompt,
-            result_type=PromptCrafterPrompt
+            result_type=PromptCrafterOutput
         )
         
         # Generate system prompts for each persona
@@ -285,7 +309,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_json(reply)
 
         stan_debaty = DebateState(
-            topic=extrapolated_prompt,
+            topic=extrapolated_prompt.topic,
             participants=personas_obj.personas,
             current_speaker_uuid="0",
             round_number=1,
@@ -319,38 +343,29 @@ async def websocket_endpoint(websocket: WebSocket):
                     except Exception as e:
                         print(e)
 
-        while True:  # Debate loop
-            print("Debate loop started")
-
-            personas_uuids = [persona.uuid for persona in debate_personas]
-            random.shuffle(personas_uuids)
-            stan_debaty["participants_queue"] = personas_uuids
-            # init_state = {
-            #     "participants": debate_personas,
-            #     "conversation_history": [opening_statement],
-            #     "current_speaker_uuid": "",
-            #     "participants_queue": personas_uuids,
-            #     "is_debate_finished": False
-            # }
-            init_state = dict(stan_debaty)
-
-            while True:  # Round loop
-                print("Round loop started")
-                try:
-                    await stream_graph_updates(init_state, config)  # Remove the list wrapper
-                except GraphRecursionError as e:
-                    print(f"Hit recursion limit, breaking round loop")
-                    snapshot = graph.get_state(config)
-                    break
-                snapshot = graph.get_state(config)
-                if not snapshot.next:
-                    break
-            
-            stan_debaty = snapshot.values
-
+        while True:  # Main connection loop
             try:
-                pass
-        
+                print("Debate loop started")
+
+                personas_uuids = [persona.uuid for persona in debate_personas]
+                random.shuffle(personas_uuids)
+                stan_debaty["participants_queue"] = personas_uuids
+                init_state = dict(stan_debaty)
+
+                while True:  # Round loop
+                    print("Round loop started")
+                    try:
+                        await stream_graph_updates(init_state, config)
+                    except GraphRecursionError as e:
+                        print(f"Hit recursion limit, breaking round loop")
+                        snapshot = graph.get_state(config)
+                        break
+                    snapshot = graph.get_state(config)
+                    if not snapshot.next:
+                        break
+                
+                stan_debaty = snapshot.values
+
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,
@@ -359,7 +374,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 )
                 moderator_result = await moderator_agent.run("Is the debate finished?", deps=stan_debaty)
                 print(f"Moderator result: {moderator_result}")
-                # Ocena czy koniec i ustawić zmienne w DebateState , licznik, stoper
 
                 if moderator_result.data.debate_status == "continue":
                     next_focus:Statement = Statement(
@@ -375,20 +389,21 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif moderator_result.data.debate_status == "conclude":                    
                     stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = True 
-                    # wyjście z pętli while
                     break                  
                 else:
                     raise ValueError(f"Invalid debate status: {moderator_result.data.debate_status}")
-                     
+
             except WebSocketDisconnect:
-                print("Client disconnected")
+                print("Client disconnected normally")
                 break
             except Exception as e:
-                print(f"Error processing message: {str(e)}")
-                await websocket.send_json({
-                    "type": "error",
-                    "message": str(e)
-                })
+                print(f"Error in debate loop: {str(e)}")
+                if not websocket.client_state.DISCONNECTED:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": str(e)
+                    })
+                break
         
         # komentator podsumowuje debatę
         commentator_agent = Agent(
@@ -406,12 +421,10 @@ async def websocket_endpoint(websocket: WebSocket):
         })
                 
     except Exception as e:
-        print(f"WebSocket error: {str(e)}")
+        print(f"WebSocket connection error: {str(e)}")
+    finally:
         if not websocket.client_state.DISCONNECTED:
-            await websocket.send_json({
-                "type": "error",
-                "message": str(e)
-            })
+            await websocket.close()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

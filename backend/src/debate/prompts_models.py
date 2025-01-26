@@ -23,7 +23,7 @@ class RPEAPrompt(BaseModel):
     """
     personas: List[Persona] = Field(..., description="List of personas for the debate")
 
-class PromptCrafterPrompt(BaseModel):
+class PromptCrafterOutput(BaseModel):
     """
     Prompt crafter prompt for the debate.
     """

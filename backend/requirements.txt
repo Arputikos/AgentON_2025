@@ -22,3 +22,4 @@ aiohttp>=3.8.6
 openai==1.60.1
 uvicorn==0.25.0
 pillow==11.1.0
+lxml_html_clean==0.4.1

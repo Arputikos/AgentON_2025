@@ -28,6 +28,9 @@ class ExtrapolatedPrompt(Prompt):
     context: Optional[str] = Field(None, description="Additional context or constraints")
     suggested_participants: Optional[List[str]] = Field(default=None, description="Suggested debate participants")
 
+    def __getitem__(self, key):
+        return getattr(self, key)
+
 # Participants, personae
 # persona powinna być generowana przez agenta który researchuje osoby które pasują do debaty na podstawie promptu
 class Persona(BaseModel):

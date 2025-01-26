@@ -130,7 +130,7 @@ async def summarizer(state: DebateState):
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
-            content=summary.data,
+            content=str(summary.data),
             persona_uuid=str(commentator_persona.uuid),
             timestamp=datetime.now()
     )
@@ -155,9 +155,14 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
         goto = "participant_agent"
 
     context_conversation = format_conversation(conversation_history)
-    context = f'Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n Always react to last message in the conversation! History of conversation: ```{context_conversation}```'
+    extrapolated_prompt = state["extrapolated_prompt"]
+    if not extrapolated_prompt:
+        raise ValueError("extrapolated_prompt cannot be None")
+        
+    topic = extrapolated_prompt.topic
+    context = f'Original topic of the debate: \n# **{topic}**\n\n Always react to last message in the conversation! History of conversation: ```{context_conversation}```'
     
-    coordinator_output = await coordinator_agent.run(context)
+    coordinator_output = await coordinator_agent.run(context, deps=extrapolated_prompt)
     next_speaker_uuid = coordinator_output.data.next_speaker_uuid
     question = coordinator_output.data.question
     justification = coordinator_output.data.justification
@@ -204,6 +209,9 @@ async def participant_agent(state: DebateState):
                     query_id=str(uuid4())
                 )
                 results = await websearch(search_query)
+                if not results:
+                    print(f"No search results found for query: {query}")
+                    return SearchToolResponse(web_contents=[])
                 return SearchToolResponse(web_contents=results)
             except Exception as e:
                 print(f"Error searching: {e}")
@@ -212,18 +220,17 @@ async def participant_agent(state: DebateState):
         
     current_speaker_no = int(state["current_speaker_uuid"])
     current_speaker_uuid = state["participants_queue"][current_speaker_no]
+    last_question = str(state["conversation_history"][-1].content)
     conversation_history = format_conversation(state["conversation_history"])
 
     agent = create_agent(current_speaker_uuid)
-    context = ExtrapolatedPrompt(
-        prompt=str(state["extrapolated_prompt"]),
-        context=conversation_history,
-        topic=state["topic"]
-    )
+    extrapolated_prompt = state["extrapolated_prompt"]
+    if not extrapolated_prompt:
+        raise ValueError("extrapolated_prompt cannot be None")
     
     agent_response = await agent.run(
-        "You are now speaking in the debate. Use the search tool to find relevant information to support your arguments.",
-        deps=context
+        f"You are now speaking in the debate. Answer the last question: {last_question}. Use the search tool to find relevant information to support your arguments. \n\n History of conversation: ```{conversation_history}```",
+        deps=extrapolated_prompt
     )
 
     statement: Statement = Statement(

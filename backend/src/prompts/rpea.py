@@ -1,3 +1,5 @@
+# Generates list of personas to participate in the debate
+
 rpea_prompt = """
 # **Required Personas Extractor Agent**
 

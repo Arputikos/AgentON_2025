@@ -23,11 +23,7 @@ function calculatePosition(index: number, total: number) {
     };
 }
 
-interface DebateRoomProps {
-  id: string | null;
-}
-
-export const DebateRoom: React.FC<DebateRoomProps> = ({ id }) => {
+export default function DebateRoom() {
   const [showChat, setShowChat] = useState(true);
   const searchParams = useSearchParams();
   const debateId = searchParams.get('state');
@@ -45,7 +41,7 @@ export const DebateRoom: React.FC<DebateRoomProps> = ({ id }) => {
   // Memoize speaker positions calculation
   const speakers = useMemo(() => {
     if (!participants.length) return [];
-    console.log('Calculating positions for speakersusedatestre:', participants.length);
+    console.log('Calculating positions for speakersusedebatestre:', participants.length);
     return participants.map((speaker, index) => {
       const position = calculatePosition(index, participants.length);
       return {

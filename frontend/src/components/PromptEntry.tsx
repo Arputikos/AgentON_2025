@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
+import Link from 'next/link';
 
 export default function Home() {
+  const [aiApiKey, setAIApiKey] = useState('');
+  const [exaApiKey, setExaApiKey] = useState('');
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { isConnected } = useWebSocket();
@@ -22,7 +25,11 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: prompt.trim() }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          ai_api_key: aiApiKey.trim(),
+          exa_api_key: exaApiKey.trim()
+        }),
       });
 
       const debateId = await response.json();
@@ -50,13 +57,13 @@ export default function Home() {
       </div>
       
       <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-xl">
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center mb-4">
           <Sparkles className="w-8 h-8 text-purple-500 mr-2" />
           <h1 className="text-3xl font-bold text-gray-800">Debate Arena</h1>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className='p-0'>
             <label htmlFor="prompt" className="block text-md font-medium text-gray-700 mb-2 p-1">
               Enter your debate topic
             </label>
@@ -70,7 +77,29 @@ export default function Home() {
               disabled={isLoading}
             />
           </div>
-          
+          <label htmlFor="prompt" className="block text-md font-medium text-gray-700 mb-2 p-1">
+              🗝️Enter API key (Deepseek or OpenAI)
+            </label>
+            <input
+              type="text"
+              value={aiApiKey}
+              onChange={(e) => setAIApiKey(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+              placeholder="Deepseek / OpenAI API key"
+              required
+              disabled={isLoading}
+            />
+            <label htmlFor="prompt" className="block text-md font-medium text-gray-700 mb-2 p-1">
+              🗝️Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but better results with!)
+            </label>
+            <input
+              type="text"
+              value={exaApiKey}
+              onChange={(e) => setExaApiKey(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+              placeholder="Exa Search API key"
+              disabled={isLoading}
+            />
           <button
             type="submit"
             disabled={isLoading}

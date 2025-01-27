@@ -20,10 +20,6 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - EXA_API_KEY=${EXA_API_KEY}
     volumes:
       - ./backend:/app
     networks:

@@ -4,6 +4,10 @@ import DebateRoom from '@/components/DebateRoom';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+interface DebateRoomProps {
+  id: string | null;
+}
+
 export default function DebatePage() {
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');//debateId

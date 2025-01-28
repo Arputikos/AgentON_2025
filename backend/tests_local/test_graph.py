@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from src.graph_run import run_graph
 
-from src.debate.prompts_models import PromptCrafterPrompt
+from src.debate.prompts_models import PromptCrafterOutput
 from src.debate.models import Persona, Statement
 from pydantic_ai import Agent
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     prompt_crafter_agent = Agent(
         model=model,
         system_prompt=prompt_crafter_prompt,
-        result_type=PromptCrafterPrompt
+        result_type=PromptCrafterOutput
     )
     
     persona_list = asyncio.run(generate_prompts(personas))

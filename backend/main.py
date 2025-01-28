@@ -17,7 +17,7 @@ from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
 from src.debate.prompts_models import OpeningContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
-from src.graph import graph, get_persona_by_uuid
+from src.graph import graph, get_persona_by_uuid, get_summary
 from src.debate.const_personas import CONST_PERSONAS
 from src.graph_run import config
 from langgraph.errors import GraphRecursionError
@@ -144,9 +144,10 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Generate personas
         personas_result = await rpea_agent.run(extrapolated_prompt)
-        personas_obj = personas_result.data
-        debate_personas = personas_obj.personas.copy()
-        debate_personas.extend(CONST_PERSONAS)
+        # full list of personas, including commentator, coordinator, moderator and opening; RPEAOutput object
+        personas_full_list_RPEA = personas_result.data
+        # debate_personas is the List of actual debate participants
+        debate_personas = personas_full_list_RPEA.personas.copy()
 
         ###
         ### SEND THE TOPIC OF THE DEBATE AND THE PARTICIPANTS TO THE CLIENT 
@@ -161,7 +162,7 @@ async def websocket_endpoint(websocket: WebSocket):
         })
 
         # Send personas to client
-        for persona in personas_obj.personas:
+        for persona in debate_personas:
             await websocket.send_json({
                 "type": "persona",
                 "data": persona.model_dump()
@@ -194,7 +195,7 @@ async def websocket_endpoint(websocket: WebSocket):
             background="Professional debate moderator",
             debate_style="Balanced and controlled"
         )
-        personas_obj.personas.append(moderator_persona)
+        personas_full_list_RPEA.personas.append(moderator_persona)
 
         opening_persona = Persona(
             uuid=str(uuid.uuid4()),
@@ -209,7 +210,10 @@ async def websocket_endpoint(websocket: WebSocket):
             background="Specialized in debate openings",
             debate_style="Formal and welcoming"
         )
-        personas_obj.personas.append(opening_persona)   
+        personas_full_list_RPEA.personas.append(opening_persona)  
+
+        # Add coordinator and commentator to the full list
+        personas_full_list_RPEA.personas.extend(CONST_PERSONAS) 
 
         print("Personas completed")
         
@@ -221,16 +225,15 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=PromptCrafterOutput
         )
         
-        # Generate system prompts for each persona
-        for persona in personas_obj.personas:
+        # Generate system prompts for each debatepersona
+        for persona in debate_personas:
             persona_data = persona.print_persona_as_json()
             print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
             print(f"Persona system prompt: {persona.system_prompt}")
-
-        personas_obj.personas.extend(CONST_PERSONAS)
-        persona_list: List[Persona] = personas_obj.personas
+        
+        persona_full_list: List[Persona] = personas_full_list_RPEA.personas
 
         # Generate opening statement
         opening_agent = Agent(
@@ -241,7 +244,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         print("Opening")
 
-        opening_user_prompt = f"Debate topic: {extrapolated_prompt} \nPersonas: {persona_list} \nWhat is the opening for this debate?"
+        opening_user_prompt = f"Debate topic: {extrapolated_prompt} \nPersonas: {persona_full_list} \nWhat is the opening for this debate?"
         opening_result = await opening_agent.run(opening_user_prompt) 
         print(f"Opening: {opening_result.data.opening}") 
         print(f"welcome_message: {opening_result.data.welcome_message}") 
@@ -260,7 +263,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
-            participants=personas_obj.personas,
+            participants=personas_full_list_RPEA.personas,
             current_speaker_uuid="0",
             round_number=1,
             conversation_history=[opening_stmt],
@@ -278,7 +281,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         continue
                     try:
                         last_statement = state_update["conversation_history"][-1]
-                        persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
+                        persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
                         if persona:
                             name = persona.name
                         else:
@@ -299,7 +302,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 stan_debaty["participants_queue"] = personas_uuids
-                init_state = dict(stan_debaty) # TODO by może to jest powód braku aktualizacji w stanie, do przeniesienia do środka pętli poniżej.
+                init_state = dict(stan_debaty) 
 
                 while True:  # Round loop
                     print("Round loop started")
@@ -370,7 +373,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json({
                 "type": "final_message",
                 "message": "Final synthesis generated",
-                "commentator_result": commentator_result.data
+                "commentator_result": get_summary(commentator_result.data)
             })
 
     except WebSocketDisconnect:

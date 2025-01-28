@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import Link from 'next/link';
+import { startDebate } from '@/lib/actions';
 
 export default function Home() {
   const [aiApiKey, setAIApiKey] = useState('');
@@ -19,20 +20,9 @@ export default function Home() {
     if (!prompt.trim()) return;
 
     setIsLoading(true);
-    try {
-      const response = await fetch('http://localhost:8000/enter-debate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: prompt.trim(),
-          ai_api_key: aiApiKey.trim(),
-          exa_api_key: exaApiKey.trim()
-        }),
-      });
 
-      const debateId = await response.json();
+    try {
+      const debateId = await startDebate(prompt, aiApiKey, exaApiKey);
 
       if (debateId) {
         const stateParam = encodeURIComponent(JSON.stringify(debateId));

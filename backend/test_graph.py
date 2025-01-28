@@ -15,16 +15,9 @@ from pydantic_ai.models.openai import OpenAIModel
 
 from src.prompts.prompt_crafter import prompt_crafter_prompt
 from src.config import settings
-
+from src.ai_model import model
 
 from src.debate.models import DEFAULT_PERSONAS
-
-model = OpenAIModel(
-    'deepseek-chat',
-    base_url='https://api.deepseek.com/v1',
-    api_key=settings.DEEPSEEK_API_KEY,
-    # api_key=os.getenv("OPENAI_API_KEY")
-)
 
 personas = DEFAULT_PERSONAS[:2]
 

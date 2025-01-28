@@ -1,19 +1,14 @@
 from datetime import datetime
-from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
 import uvicorn
-from pydantic import BaseModel
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
-from src.config import settings
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
 from datetime import datetime
-from uuid import uuid4
 import copy
 
 # prompts
+from src.ai_model import model
 from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
@@ -33,16 +28,6 @@ import uuid
 from typing import List
 import random
 from fastapi import HTTPException
-
-
-load_dotenv()
-
-model = OpenAIModel(
-    'deepseek-chat',
-    base_url='https://api.deepseek.com/v1',
-    api_key=settings.DEEPSEEK_API_KEY,
-    # api_key=os.getenv("OPENAI_API_KEY")
-)
 
 app = FastAPI()
 

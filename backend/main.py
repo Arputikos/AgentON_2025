@@ -32,6 +32,7 @@ from pathlib import Path
 import uuid
 from typing import List
 import random
+from fastapi import HTTPException
 
 
 load_dotenv()
@@ -74,9 +75,9 @@ async def process_prompt(request: PromptRequest):
         
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
-        print(f"Enriched context: {enriched_context.data}")  # Let's see what we get
+        print(f"Enriched context: {enriched_context.data}")
         
-        debate_id = uuid.uuid4()
+        debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
@@ -99,10 +100,7 @@ async def process_prompt(request: PromptRequest):
         
     except Exception as e:
         print(f"Error processing prompt: {str(e)}")
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        raise HTTPException(status_code=500, detail=str(e))  # Proper error response
 
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):

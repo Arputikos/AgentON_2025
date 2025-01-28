@@ -26,7 +26,7 @@ Debate Arena to zaawansowany system wieloagentowy do prowadzenia debat, wykorzys
 git clone git@github.com:Arputikos/AgentON_2025.git
 ```
 
-2. W głównym folderze projektu utwórz plik `.env` i dodaj klucz API:
+2. W folderze backend projektu skopiuj plik `.env-example` do `.env` i dodaj klucze API:
 ```
 OPENAI_API_KEY=twój-klucz-api
 # lub

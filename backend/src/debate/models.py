@@ -153,10 +153,14 @@ class Moderator(BaseModel):
 class DebateConfig(BaseModel):
     speakers: list[Persona]
     prompt: str
+    ai_api_key: str
+    exa_api_key: Optional[str]
 
 # prompt od użytkownika
 class PromptRequest(BaseModel):
     prompt: str
+    ai_api_key: str
+    exa_api_key: Optional[str]
 
 # Statements of the participants
 class Statement(BaseModel):

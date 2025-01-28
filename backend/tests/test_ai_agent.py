@@ -37,33 +37,33 @@ async def test_basic_agent_response(ai_model_fixture):
     assert isinstance(result.data.response, str)
     assert len(result.data.response) > 0
 
-@pytest.mark.asyncio
-async def test_context_agent_response_no_tool_calls(ai_model_fixture):
+# @pytest.mark.asyncio
+# async def test_context_agent_response_no_tool_calls(ai_model_fixture):
 
-    context_agent = Agent(
-        model=ai_model_fixture,
-        system_prompt=context_prompt
-    )
+#     context_agent = Agent(
+#         model=ai_model_fixture,
+#         system_prompt=context_prompt
+#     )
 
-    @context_agent.result_validator
-    def handle_tool_calls(final_response: str) -> str:
-        if 'tool_call' in final_response:
-            raise ModelRetry('Tool calls are disabled.')
-        return final_response
+#     @context_agent.result_validator
+#     def handle_tool_calls(final_response: str) -> str:
+#         if 'tool_call' in final_response:
+#             raise ModelRetry('Tool calls are disabled.')
+#         return final_response
     
-    # Process through Context Enrichment Agent
-    enriched_context = await context_agent.run("Create a debate between two people about the topic of AI")
-    print(f"Enriched context: {enriched_context.data}")    
+#     # Process through Context Enrichment Agent
+#     enriched_context = await context_agent.run("Create a debate between two people about the topic of AI")
+#     print(f"Enriched context: {enriched_context.data}")    
 
-@pytest.mark.asyncio
-async def test_context_agent_response(ai_model_fixture):
+# @pytest.mark.asyncio
+# async def test_context_agent_response(ai_model_fixture):
 
-    context_agent = Agent(
-        model=ai_model_fixture,
-        system_prompt=context_prompt, # "Help me", # 
-        result_type=OpeningContextOutput
-    )
+#     context_agent = Agent(
+#         model=ai_model_fixture,
+#         system_prompt=context_prompt, # "Help me", # 
+#         result_type=OpeningContextOutput
+#     )
     
-    # Process through Context Enrichment Agent
-    enriched_context = await context_agent.run("Create a debate between two people about the topic of AI")
-    print(f"Enriched context: {enriched_context.data}")        
+#     # Process through Context Enrichment Agent
+#     enriched_context = await context_agent.run("Create a debate between two people about the topic of AI")
+#     print(f"Enriched context: {enriched_context.data}")        

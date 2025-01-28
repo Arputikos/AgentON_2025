@@ -9,6 +9,6 @@ if settings.DEEPSEEK_API_KEY:
     )
 else:
     model = OpenAIModel(
-        'gpt-4o-mini',
+        settings.MODEL_NAME,
         api_key=settings.OPENAI_API_KEY
     )

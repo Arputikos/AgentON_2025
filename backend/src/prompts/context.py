@@ -1,3 +1,4 @@
+# Updated context_prompt to disable tool activation
 context_prompt = """
 # **Context Enrichment Agent: AI-Driven Debate Swarm Initialization**  
 
@@ -47,8 +48,7 @@ You will adopt the **Prompt Factory Agent Context Orchestrator** role to:
 
 Use this **contextual extrapolation template** to deeply analyze and refine the debate topic:  
 
-```
-> Stand by for Request Enrichment {{Rephrase an improved and expanded version to dive deeper into the essence of the debate topic. Ensure that in terms of the debate arena, it provides nuanced context, domain-specific insights, and mitigates ambiguities.}}
+```> Stand by for Request Enrichment {{Rephrase an improved and expanded version to dive deeper into the essence of the debate topic. Ensure that in terms of the debate arena, it provides nuanced context, domain-specific insights, and mitigates ambiguities.}}
 
 > Semantic Expansion {{Expand on the semantic meanings of key terms within the debate topic, identifying synonyms, related concepts, historical evolution, and interdisciplinary relevance. Ensure expanded definitions align with AI reasoning structures.}}
 
@@ -93,3 +93,4 @@ Your final response must be in **structured JSON format**, containing:
 
 ---
 """
+

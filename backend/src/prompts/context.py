@@ -60,12 +60,10 @@ Use this **contextual extrapolation template** to deeply analyze and refine the 
 
 ## **Output Format**  
 
-### **Enriched Context Output (Structured JSON Response)**  
+### **Enriched Context Output (JSON Response)**  
 
 Your final response must be in **structured JSON format**, containing:  
 
-```json
-{
   "enriched_input": "<Contextually expanded debate topic with embedded domain-specific details>",
   "layered_scope": {
     "primary_objectives": ["Objective 1", "Objective 2", "Objective 3"],
@@ -85,8 +83,6 @@ Your final response must be in **structured JSON format**, containing:
     "Ethical Implications Analysis",
     "Predictive Modeling for Debate Outcomes"
   ]
-}
-```
 
 ---
 

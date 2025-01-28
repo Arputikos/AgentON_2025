@@ -49,7 +49,7 @@ async def process_prompt(request: PromptRequest):
     """
     API endpoint that processes user prompt and returns debate configuration.
     """
-    print("Received prompt:", request.prompt)
+    print("Received prompt:", request.prompt, "using model:", model.model_name)
     try:
         # Create the Context Enrichment Agent
         context_agent = Agent(
@@ -85,7 +85,10 @@ async def process_prompt(request: PromptRequest):
         
     except Exception as e:
         print(f"Error processing prompt: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))  # Proper error response
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to process debate prompt. Please try again."
+        )
 
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):

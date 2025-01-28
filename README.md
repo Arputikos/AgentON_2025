@@ -9,26 +9,32 @@ Debate Arena to zaawansowany system wieloagentowy do prowadzenia debat, wykorzys
 - Backend: Python 3.11, FastAPI, WebSockets, LangGraph, DeepSeek V3 LLM
 - Frontend: Next.js, TypeScript, TailwindCSS
 - Komunikacja: WebSocket
-- Konteneryzacja: Docker
+- Konteneryzacja: Docker (w przygotowaniu)
 
 ## Wymagania systemowe
 
 - Python 3.11.8
 - Node.js 20+
 - Docker (opcjonalnie)
+- instalacja wymaganych pakietów (patrz poniżej)
 
 ## Instalacja i uruchomienie lokalne
 
 1. Sklonuj repozytorium:
 
 ```bash
-git clone [adres-repozytorium]
+git clone git@github.com:Arputikos/AgentON_2025.git
 ```
 
 2. W głównym folderze projektu utwórz plik `.env` i dodaj klucz API:
 ```
 OPENAI_API_KEY=twój-klucz-api
 # lub
+DEEPSEEK_API_KEY=twój-klucz-api
+```
+
+Opcjonalnie podaj klucz API dla EXA API (narzędzie do wyszukiwania w internecie, w ramach konta próbnego dostępne jest 10$ kredytu za free):
+```
 DEEPSEEK_API_KEY=twój-klucz-api
 ```
 
@@ -72,35 +78,3 @@ npm run dev
 Projekt podzielony jest na dwie główne części:
 - `frontend/` - aplikacja Next.js z interfejsem użytkownika
 - `backend/` - serwer FastAPI z logiką debaty i integracją LLM
-
-## Rozwój projektu
-
-1. Backend:
-```bash
-cd backend
-pip install -r requirements-dev.txt
-pre-commit install
-```
-
-2. Testy:
-```bash
-cd backend
-pytest
-```
-
-## Licencja
-
-[Informacja o licencji]
-
-```bash
-cd backend
-uvicorn main:app --reload
-```
-
-In second terminal:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-

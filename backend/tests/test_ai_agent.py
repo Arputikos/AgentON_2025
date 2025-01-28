@@ -4,7 +4,7 @@ import pytest
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic import BaseModel
-from src.ai_model import model
+# from src.ai_model import model
 
 from src.prompts.context import context_prompt
 from src.debate.prompts_models import OpeningContextOutput

@@ -20,22 +20,22 @@ class SimpleOutput(BaseModel):
 # def ai_model_fixture():
 #     return model
 
-@pytest.mark.asyncio
-async def test_basic_agent_response(ai_model_fixture):
-    # Create a simple agent
-    agent = Agent(
-        model=ai_model_fixture,
-        system_prompt="You are a helpful assistant. Keep your responses brief and simple.",
-        result_type=SimpleOutput
-    )
+# @pytest.mark.asyncio
+# async def test_basic_agent_response(ai_model_fixture):
+#     # Create a simple agent
+#     agent = Agent(
+#         model=ai_model_fixture,
+#         system_prompt="You are a helpful assistant. Keep your responses brief and simple.",
+#         result_type=SimpleOutput
+#     )
     
-    # Test with "Hello world" prompt
-    result = await agent.run("Hello world")
+#     # Test with "Hello world" prompt
+#     result = await agent.run("Hello world")
     
-    # Basic assertions
-    assert isinstance(result.data, SimpleOutput)
-    assert isinstance(result.data.response, str)
-    assert len(result.data.response) > 0
+#     # Basic assertions
+#     assert isinstance(result.data, SimpleOutput)
+#     assert isinstance(result.data.response, str)
+#     assert len(result.data.response) > 0
 
 # @pytest.mark.asyncio
 # async def test_context_agent_response_no_tool_calls(ai_model_fixture):

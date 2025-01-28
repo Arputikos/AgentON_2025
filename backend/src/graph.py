@@ -1,7 +1,6 @@
 import random
 
 from io import BytesIO
-import uuid
 from PIL import Image
 from uuid import uuid4
 from datetime import datetime
@@ -12,10 +11,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.models.openai import OpenAIModel
 
 from src.ai_model import model
-from src.config import settings
 from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent
 from src.debate.prompts_models import CoordinatorOutput, CommentatorOutput
 

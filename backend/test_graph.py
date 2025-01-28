@@ -10,11 +10,8 @@ from src.graph_run import run_graph
 from src.debate.prompts_models import PromptCrafterPrompt
 from src.debate.models import Persona, Statement
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
-
 
 from src.prompts.prompt_crafter import prompt_crafter_prompt
-from src.config import settings
 from src.ai_model import model
 
 from src.debate.models import DEFAULT_PERSONAS

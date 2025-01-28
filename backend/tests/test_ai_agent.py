@@ -16,9 +16,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 class SimpleOutput(BaseModel):
     response: str
 
-@pytest.fixture
-def ai_model_fixture():
-    return model
+# @pytest.fixture
+# def ai_model_fixture():
+#     return model
 
 @pytest.mark.asyncio
 async def test_basic_agent_response(ai_model_fixture):

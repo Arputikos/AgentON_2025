@@ -23,10 +23,12 @@ function calculatePosition(index: number, total: number) {
     };
 }
 
-export default function DebateRoom() {
+interface DebateRoomProps {
+  debateId: string | null;
+}
+
+export default function DebateRoom({ debateId }: DebateRoomProps) {
   const [showChat, setShowChat] = useState(true);
-  const searchParams = useSearchParams();
-  const debateId = searchParams.get('state');
   const { isConnected } = useWebSocket();
   
   const { 

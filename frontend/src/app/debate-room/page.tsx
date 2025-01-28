@@ -21,7 +21,7 @@ export default function DebatePage() {
 
   return (
     <DebateRoom 
-      id={debateId}
+      debateId={debateId}
     />
   );
 }

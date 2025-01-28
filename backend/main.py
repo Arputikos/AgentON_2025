@@ -11,6 +11,7 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from datetime import datetime
 from uuid import uuid4
+import copy
 
 # prompts
 from src.prompts.context import context_prompt
@@ -22,7 +23,7 @@ from src.prompts.commentator import commentator_prompt
 from src.debate.prompts_models import OpeningContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
 from src.graph import graph, get_persona_by_uuid
-from src.graph import personas as const_personas
+from src.debate.const_personas import CONST_PERSONAS
 from src.graph_run import config
 from langgraph.errors import GraphRecursionError
 
@@ -159,7 +160,7 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_result = await rpea_agent.run(extrapolated_prompt)
         personas_obj = personas_result.data
         debate_personas = personas_obj.personas.copy()
-
+        debate_personas.extend(CONST_PERSONAS)
 
         ###
         ### SEND THE TOPIC OF THE DEBATE AND THE PARTICIPANTS TO THE CLIENT 
@@ -242,7 +243,7 @@ async def websocket_endpoint(websocket: WebSocket):
             persona.system_prompt = prompt_result.data.system_prompt
             print(f"Persona system prompt: {persona.system_prompt}")
 
-        personas_obj.personas.extend(const_personas)
+        personas_obj.personas.extend(CONST_PERSONAS)
         persona_list: List[Persona] = personas_obj.personas
 
         # Generate opening statement
@@ -284,7 +285,7 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         
         async def stream_graph_updates(input_message: dict, config: dict):            
-            current_state = input_message
+            current_state: dict = copy.deepcopy(input_message)
             async for event in graph.astream(current_state, config=config):
                 for state_update in event.values():
                     if not state_update:
@@ -299,7 +300,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             name = "Coordinator"
                         
                         reply = data_to_frontend_payload(name, last_statement.content)
-                        print(reply)
+                        print(f"Persona {name} said: {last_statement.content}")
                         await websocket.send_json(reply)
                         # Update current state with the new state
                         current_state = state_update
@@ -312,7 +313,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 stan_debaty["participants_queue"] = personas_uuids
-                init_state = dict(stan_debaty)
+                init_state = dict(stan_debaty) # TODO by może to jest powód braku aktualizacji w stanie, do przeniesienia do środka pętli poniżej.
 
                 while True:  # Round loop
                     print("Round loop started")
@@ -326,7 +327,11 @@ async def websocket_endpoint(websocket: WebSocket):
                     if not snapshot.next:
                         break
                 
-                stan_debaty = snapshot.values
+                stan_debaty = snapshot.values # TODO to jest cicha zmiana typu, do poprawy
+
+                print("Conversation history:")
+                for statement in stan_debaty["conversation_history"]:
+                    print(f"{statement.timestamp} - {statement.persona_uuid}: {statement.content}")
 
                 moderator_agent = Agent(
                     model=model,
@@ -371,7 +376,7 @@ async def websocket_endpoint(websocket: WebSocket):
             commentator_agent = Agent(
                 model=model,
                 system_prompt=commentator_prompt,
-                deps_type=dict,
+                deps_type=DebateState,
                 result_type=CommentatorOutput
             )
             commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)

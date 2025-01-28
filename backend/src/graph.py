@@ -23,6 +23,7 @@ from src.prompts.commentator import commentator_prompt
 
 from pydantic import BaseModel, Field
 from src.tools import websearch
+from src.debate.const_personas import COMMENTATOR_PERSONA, COORDINATOR_PERSONA
 
 class DebateContext(BaseModel):
     topic: str
@@ -84,37 +85,7 @@ coordinator_agent = Agent(
 )
 
 # Personas
-personas = []
-commentator_persona = Persona(
-    uuid=str(uuid.uuid4()),
-    name="Commentator",
-    title="Debate commentator",
-    image_url="https://ui-avatars.com/api/?name=Commentator",
-    description="Debate commentator",
-    system_prompt=commentator_prompt,
-    personality="Insightful and articulate",
-    expertise=["Debate analysis", "Public speaking"],
-    attitude="Observant and analytical",
-    background="Expert in debate commentary",
-    debate_style="Analytical and engaging"
-)
-personas.append(commentator_persona)
-
-coordinator_persona = Persona(
-    uuid=str(uuid.uuid4()),
-    name="Coordinator",
-    title="Debate manager",
-    image_url="https://ui-avatars.com/api/?name=Coordinator",
-    description="Debate coordinator",
-    system_prompt=coordinator_prompt,
-    personality="Organized and methodical",
-    expertise=["Debate management", "Process coordination"],
-    attitude="Professional and efficient",
-    background="Experienced debate coordinator",
-    debate_style="Structured and systematic"
-)
-personas.append(coordinator_persona)
-
+personas = [COMMENTATOR_PERSONA, COORDINATOR_PERSONA]
 
 def save_graph_image(bytes_image, filename):
     buffer = BytesIO(bytes_image)
@@ -126,12 +97,14 @@ def save_graph_image(bytes_image, filename):
 async def summarizer(state: DebateState):
     conversation_history = state["conversation_history"]
     formatted_history = format_conversation(conversation_history)
-    summary = await commentator_agent.run(formatted_history)
+    if state["extrapolated_prompt"] is None:
+        raise ValueError("Extrapolated prompt is missing")
+    summary = await commentator_agent.run(formatted_history, deps=state["extrapolated_prompt"])
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
             content=summary.data,
-            persona_uuid=str(commentator_persona.uuid),
+            persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
     return {"conversation_history": [statement]}
@@ -165,13 +138,13 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     justification_statement : Statement = Statement(
             uuid=str(uuid4()),
             content=justification,
-            persona_uuid=str(coordinator_persona.uuid),
+            persona_uuid=str(COORDINATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
     question_statement : Statement = Statement(
             uuid=str(uuid4()),
             content=question,
-            persona_uuid=str(coordinator_persona.uuid),
+            persona_uuid=str(COORDINATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
 
@@ -183,6 +156,8 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
 
 async def participant_agent(state: DebateState):
     print(f"state: {state}")
+    if state["extrapolated_prompt"] is None:
+        raise ValueError("Extrapolated prompt is missing")
     def create_agent(uuid: str):
         persona = get_persona_by_uuid(state["participants"], uuid)
         if not persona:
@@ -213,6 +188,7 @@ async def participant_agent(state: DebateState):
     current_speaker_no = int(state["current_speaker_uuid"])
     current_speaker_uuid = state["participants_queue"][current_speaker_no]
     conversation_history = format_conversation(state["conversation_history"])
+    last_statement = state["conversation_history"][-1]
 
     agent = create_agent(current_speaker_uuid)
     context = ExtrapolatedPrompt(
@@ -222,7 +198,7 @@ async def participant_agent(state: DebateState):
     )
     
     agent_response = await agent.run(
-        "You are now speaking in the debate. Use the search tool to find relevant information to support your arguments.",
+        f"You are now speaking in the debate. Answer to the last question: {last_statement.content}. Use the search tool to find relevant information to support your arguments.",
         deps=context
     )
 
@@ -234,7 +210,7 @@ async def participant_agent(state: DebateState):
     )
     
     return {
-        "conversation_history": [statement], 
+        "conversation_history": [statement],
         "current_speaker_uuid": str(current_speaker_no + 1)
     }
 

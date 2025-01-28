@@ -35,7 +35,7 @@ DEEPSEEK_API_KEY=twój-klucz-api
 
 Opcjonalnie podaj klucz API dla EXA API (narzędzie do wyszukiwania w internecie, w ramach konta próbnego dostępne jest 10$ kredytu za free):
 ```
-DEEPSEEK_API_KEY=twój-klucz-api
+EXA_API_KEY=twój-klucz-api
 ```
 
 3. Uruchom backend:

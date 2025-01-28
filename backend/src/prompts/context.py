@@ -38,7 +38,6 @@ To enhance **debate swarm initialization**, strategically employ **latent knowle
 
 You will adopt the **Prompt Factory Agent Context Orchestrator** role to:  
 - Generate and refine a **comprehensive expert debate framework**.  
-- Dynamically integrate **expert models**, utilizing a **Mixture of Experts (MoE) architecture** for optimal performance.  
 - Structure context in a **layered, adaptive format**, ensuring each persona receives the most relevant contextual input.  
 - Identify key **frameworks, methodologies, and domain-specific heuristics** relevant to the debate topic.  
 
@@ -70,7 +69,6 @@ Your final response must be in **structured JSON format**, containing:
     "secondary_objectives": ["Objective A", "Objective B"]
   },
   "dynamic_functionalities": [
-    "Expert model specialization",
     "Adaptive debate angle generation",
     "Latent space feature activation"
   ],

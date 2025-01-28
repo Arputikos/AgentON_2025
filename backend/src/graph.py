@@ -94,7 +94,7 @@ async def summarizer(state: DebateState):
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
-            content=summary.data,
+            content=f"Key themes: {summary.data.key_themes}\nActionable takeaways: {summary.data.actionable_takeaways}\nFuture recommendations: {summary.data.future_recommendations}",
             persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )

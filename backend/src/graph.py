@@ -37,6 +37,9 @@ class ParticipantResponse(BaseModel):
     response: str = Field(description="The participant's response in the debate")
     sources: Optional[List[str]] = Field(default=None, description="Sources used in the response")
 
+def get_summary(summary: CommentatorOutput) -> str:
+    return f"Key themes: {summary.key_themes}\n\nActionable takeaways: {summary.actionable_takeaways}\n\nFuture recommendations: {summary.future_recommendations}"
+
 def format_conversation(conversation_history: List[Statement]) -> str:
     return "\n\n".join([
         f"person: {statement.persona_uuid}:\n{statement.content}"
@@ -94,7 +97,7 @@ async def summarizer(state: DebateState):
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
-            content=f"Key themes: {summary.data.key_themes}\nActionable takeaways: {summary.data.actionable_takeaways}\nFuture recommendations: {summary.data.future_recommendations}",
+            content=get_summary(summary.data),
             persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )

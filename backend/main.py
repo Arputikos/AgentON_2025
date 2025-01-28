@@ -17,7 +17,7 @@ from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
 from src.debate.prompts_models import OpeningContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
-from src.graph import graph, get_persona_by_uuid
+from src.graph import graph, get_persona_by_uuid, get_summary
 from src.debate.const_personas import CONST_PERSONAS
 from src.graph_run import config
 from langgraph.errors import GraphRecursionError
@@ -373,7 +373,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json({
                 "type": "final_message",
                 "message": "Final synthesis generated",
-                "commentator_result": commentator_result.data
+                "commentator_result": get_summary(commentator_result.data)
             })
 
     except WebSocketDisconnect:

@@ -1,18 +1,14 @@
 from datetime import datetime
-from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from openai import OpenAI
 import uvicorn
-from pydantic import BaseModel
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
-from src.config import settings
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
 from datetime import datetime
-from uuid import uuid4
+import copy
 
 # prompts
+from src.ai_model import model
 from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
@@ -21,8 +17,8 @@ from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
 from src.debate.prompts_models import OpeningContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
-from src.graph import graph, get_persona_by_uuid
-from src.graph import personas as const_personas
+from src.graph import graph, get_persona_by_uuid, get_summary
+from src.debate.const_personas import CONST_PERSONAS
 from src.graph_run import config
 from langgraph.errors import GraphRecursionError
 
@@ -31,16 +27,7 @@ from pathlib import Path
 import uuid
 from typing import List
 import random
-
-
-load_dotenv()
-
-model = OpenAIModel(
-    'deepseek-chat',
-    base_url='https://api.deepseek.com/v1',
-    api_key=settings.DEEPSEEK_API_KEY,
-    # api_key=os.getenv("OPENAI_API_KEY")
-)
+from fastapi import HTTPException
 
 app = FastAPI()
 
@@ -62,7 +49,7 @@ async def process_prompt(request: PromptRequest):
     """
     API endpoint that processes user prompt and returns debate configuration.
     """
-    print("Received prompt:", request.prompt)
+    print("Received prompt:", request.prompt, "using model:", model.model_name)
     try:
         # Create the Context Enrichment Agent
         context_agent = Agent(
@@ -73,9 +60,9 @@ async def process_prompt(request: PromptRequest):
         
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
-        print(f"Enriched context: {enriched_context.data}")  # Let's see what we get
+        print(f"Enriched context: {enriched_context.data}")
         
-        debate_id = uuid.uuid4()
+        debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
@@ -98,10 +85,10 @@ async def process_prompt(request: PromptRequest):
         
     except Exception as e:
         print(f"Error processing prompt: {str(e)}")
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to process debate prompt. Please try again."
+        )
 
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):
@@ -157,9 +144,10 @@ async def websocket_endpoint(websocket: WebSocket):
         
         # Generate personas
         personas_result = await rpea_agent.run(extrapolated_prompt)
-        personas_obj = personas_result.data
-        debate_personas = personas_obj.personas.copy()
-
+        # full list of personas, including commentator, coordinator, moderator and opening; RPEAOutput object
+        personas_full_list_RPEA = personas_result.data
+        # debate_personas is the List of actual debate participants
+        debate_personas = personas_full_list_RPEA.personas.copy()
 
         ###
         ### SEND THE TOPIC OF THE DEBATE AND THE PARTICIPANTS TO THE CLIENT 
@@ -174,7 +162,7 @@ async def websocket_endpoint(websocket: WebSocket):
         })
 
         # Send personas to client
-        for persona in personas_obj.personas:
+        for persona in debate_personas:
             await websocket.send_json({
                 "type": "persona",
                 "data": persona.model_dump()
@@ -207,7 +195,7 @@ async def websocket_endpoint(websocket: WebSocket):
             background="Professional debate moderator",
             debate_style="Balanced and controlled"
         )
-        personas_obj.personas.append(moderator_persona)
+        personas_full_list_RPEA.personas.append(moderator_persona)
 
         opening_persona = Persona(
             uuid=str(uuid.uuid4()),
@@ -222,7 +210,10 @@ async def websocket_endpoint(websocket: WebSocket):
             background="Specialized in debate openings",
             debate_style="Formal and welcoming"
         )
-        personas_obj.personas.append(opening_persona)   
+        personas_full_list_RPEA.personas.append(opening_persona)  
+
+        # Add coordinator and commentator to the full list
+        personas_full_list_RPEA.personas.extend(CONST_PERSONAS) 
 
         print("Personas completed")
         
@@ -234,16 +225,15 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=PromptCrafterOutput
         )
         
-        # Generate system prompts for each persona
-        for persona in personas_obj.personas:
+        # Generate system prompts for each debatepersona
+        for persona in debate_personas:
             persona_data = persona.print_persona_as_json()
             print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
             print(f"Persona system prompt: {persona.system_prompt}")
-
-        personas_obj.personas.extend(const_personas)
-        persona_list: List[Persona] = personas_obj.personas
+        
+        persona_full_list: List[Persona] = personas_full_list_RPEA.personas
 
         # Generate opening statement
         opening_agent = Agent(
@@ -254,7 +244,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         print("Opening")
 
-        opening_user_prompt = f"Debate topic: {extrapolated_prompt} \nPersonas: {persona_list} \nWhat is the opening for this debate?"
+        opening_user_prompt = f"Debate topic: {extrapolated_prompt} \nPersonas: {persona_full_list} \nWhat is the opening for this debate?"
         opening_result = await opening_agent.run(opening_user_prompt) 
         print(f"Opening: {opening_result.data.opening}") 
         print(f"welcome_message: {opening_result.data.welcome_message}") 
@@ -273,7 +263,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
-            participants=personas_obj.personas,
+            participants=personas_full_list_RPEA.personas,
             current_speaker_uuid="0",
             round_number=1,
             conversation_history=[opening_stmt],
@@ -284,14 +274,14 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         
         async def stream_graph_updates(input_message: dict, config: dict):            
-            current_state = input_message
+            current_state: dict = copy.deepcopy(input_message)
             async for event in graph.astream(current_state, config=config):
                 for state_update in event.values():
                     if not state_update:
                         continue
                     try:
                         last_statement = state_update["conversation_history"][-1]
-                        persona = get_persona_by_uuid(debate_personas, last_statement.persona_uuid)
+                        persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
                         if persona:
                             name = persona.name
                         else:
@@ -299,7 +289,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             name = "Coordinator"
                         
                         reply = data_to_frontend_payload(name, last_statement.content)
-                        print(reply)
+                        print(f"Persona {name} said: {last_statement.content}")
                         await websocket.send_json(reply)
                         # Update current state with the new state
                         current_state = state_update
@@ -312,7 +302,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 stan_debaty["participants_queue"] = personas_uuids
-                init_state = dict(stan_debaty)
+                init_state = dict(stan_debaty) 
 
                 while True:  # Round loop
                     print("Round loop started")
@@ -326,7 +316,11 @@ async def websocket_endpoint(websocket: WebSocket):
                     if not snapshot.next:
                         break
                 
-                stan_debaty = snapshot.values
+                stan_debaty = snapshot.values # TODO to jest cicha zmiana typu, do poprawy
+
+                print("Conversation history:")
+                for statement in stan_debaty["conversation_history"]:
+                    print(f"{statement.timestamp} - {statement.persona_uuid}: {statement.content}")
 
                 moderator_agent = Agent(
                     model=model,
@@ -371,7 +365,7 @@ async def websocket_endpoint(websocket: WebSocket):
             commentator_agent = Agent(
                 model=model,
                 system_prompt=commentator_prompt,
-                deps_type=dict,
+                deps_type=DebateState,
                 result_type=CommentatorOutput
             )
             commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)
@@ -379,7 +373,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json({
                 "type": "final_message",
                 "message": "Final synthesis generated",
-                "commentator_result": commentator_result.data
+                "commentator_result": get_summary(commentator_result.data)
             })
 
     except WebSocketDisconnect:

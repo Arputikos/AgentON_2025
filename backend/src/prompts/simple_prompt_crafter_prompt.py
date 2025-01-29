@@ -1,6 +1,6 @@
 # Crafts the prompt for the specific persona participating in the debate
 
-simple_prompt_crafter_prompt = """
+prompt_crafter_prompt = """
 # **Prompt Crafter Agent – Optimized & Focused Version**  
 
 ---

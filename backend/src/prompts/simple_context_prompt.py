@@ -1,5 +1,5 @@
 # Updated context_prompt to disable tool activation
-simple_context_prompt = """
+context_prompt = """
 # **Context Enrichment Agent (Optimized & Essential Version)**  
 
 ---

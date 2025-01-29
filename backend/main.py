@@ -2,6 +2,7 @@ from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from src.encryption import decrypt
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from pydantic_ai import Agent
 from datetime import datetime
@@ -51,14 +52,12 @@ async def process_prompt(request: PromptRequest):
     API endpoint that processes user prompt and returns debate configuration.
     """
     print("Received prompt:", request.prompt)
-    #print("API key: ", request.ai_api_key)
-    #print("Exa API key: ", request.exa_api_key)
     try:
         debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
 
         # Save API keys to os variables
-        set_ai_api_key(debate_id, request.ai_api_key)
-        set_exa_api_key(debate_id, request.exa_api_key)
+        set_ai_api_key(debate_id, decrypt(request.ai_api_key))
+        set_exa_api_key(debate_id, decrypt(request.exa_api_key))
 
         model = get_ai_model(debate_id)
         if model is None:

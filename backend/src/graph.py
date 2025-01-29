@@ -78,9 +78,9 @@ async def summarizer(state: DebateState):
     formatted_history = format_conversation(conversation_history)
     if state["extrapolated_prompt"] is None:
         raise ValueError("Extrapolated prompt is missing")
-    model = get_ai_model(state.debate_id)
+    model = get_ai_model(state["debate_id"])
     if model is None:
-        raise ValueError(f"Cannot load LLM model for debate id: ", state.debate_id)
+        raise ValueError(f"Cannot load LLM model for debate id: ", state["debate_id"])
     
     commentator_agent = Agent(
         model=model,
@@ -120,9 +120,9 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     context_conversation = format_conversation(conversation_history)
     context = f'Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n Always react to last message in the conversation! History of conversation: ```{context_conversation}```'
 
-    model = get_ai_model(state.debate_id)
+    model = get_ai_model(state["debate_id"])
     if model is None:
-        raise ValueError(f"Cannot load LLM model for debate id: ", state.debate_id)
+        raise ValueError(f"Cannot load LLM model for debate id: ", state["debate_id"])
     
     coordinator_agent = Agent(
         model=model,
@@ -164,9 +164,9 @@ async def participant_agent(state: DebateState):
         if not persona:
             raise ValueError(f"No persona found with UUID: {uuid}")
             
-        model = get_ai_model(state.debate_id)
+        model = get_ai_model(state["debate_id"])
         if model is None:
-            raise ValueError(f"Cannot load LLM model for debate id: ", state.debate_id)
+            raise ValueError(f"Cannot load LLM model for debate id: ", state["debate_id"])
         
         debate_agent = Agent(
             model=model,
@@ -182,7 +182,7 @@ async def participant_agent(state: DebateState):
                 search_query = SearchQuery(                
                     queries=[query],
                     query_id=str(uuid4()),
-                    exa_api_key=get_exa_api_key(state.debate_id)
+                    exa_api_key=get_exa_api_key(state["debate_id"])
                 )
                 results = await websearch(search_query)
                 return SearchToolResponse(web_contents=results)

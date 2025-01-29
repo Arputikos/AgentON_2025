@@ -20,8 +20,7 @@ export default function DebatePage() {
   }
 
   return (
-    <DebateRoom 
-      debateId={debateId}
+    <DebateRoom debateId={debateId}
     />
   );
 }

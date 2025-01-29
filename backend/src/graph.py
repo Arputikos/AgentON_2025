@@ -192,10 +192,11 @@ async def participant_agent(state: DebateState):
                 except Exception as e:
                     print(f"Error searching: {e}")
                     return SearchToolResponse(web_contents=[])
-            return debate_agent
         else:
             print("Exa key not found - skipping search tool")
-        
+
+        return debate_agent
+
     current_speaker_no = int(state["current_speaker_uuid"])
     current_speaker_uuid = state["participants_queue"][current_speaker_no]
     conversation_history = format_conversation(state["conversation_history"])

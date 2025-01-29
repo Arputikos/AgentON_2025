@@ -2,8 +2,25 @@ import os
 import requests
 from src.config import settings
 from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.anthropic import AnthropicModel
 
 def is_openai_api_key(api_key: str):
+    if api_key.startswith("sk-proj-"): #project keys
+        return True
+    elif api_key.startswith("sk-None-"): #user keys
+        return True
+    elif api_key.startswith("sk-svcacct-"):
+        return True
+    else:
+        return False
+
+def is_anthropic_api_key(api_key: str):
+    if api_key.startswith("sk-ant"):
+        return True
+    else:
+        return False
+
+def is_openai_api_key_legacy(api_key: str):
     url = "https://api.openai.com/v1/models"
     headers = {
         "Authorization": f"Bearer {api_key}"
@@ -41,7 +58,13 @@ def get_ai_model(debate_id: str):
     if is_openai_api_key(key):
         print("Loading OpenAI LLM Model")
         return OpenAIModel(
-            settings.MODEL_NAME,
+            settings.OPENAI_MODEL_NAME,
+            api_key=key
+        )
+    elif is_anthropic_api_key(key):
+        print("Loading Anthropic LLM Model")
+        return AnthropicModel(
+            settings.ANTHROPIC_MODEL_NAME,
             api_key=key
         )
     else: #assume deepseek

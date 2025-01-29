@@ -4,10 +4,10 @@ import pytest
 from pydantic_ai import Agent, ModelRetry, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic import BaseModel
-from src.ai_model import model
+from src.ai_model import get_ai_model, set_ai_api_key, set_exa_api_key
 
 from src.prompts.context import context_prompt
-from src.debate.prompts_models import OpeningContextOutput
+from src.debate.prompts_models import ContextOutput
 
 # Add the 'backend' directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -18,7 +18,7 @@ class SimpleOutput(BaseModel):
 
 @pytest.fixture
 def ai_model_fixture():
-    return model
+    return get_ai_model("test")
 
 @pytest.mark.asyncio
 async def test_basic_agent_response(ai_model_fixture):
@@ -61,7 +61,7 @@ async def test_context_agent_response(ai_model_fixture):
     context_agent = Agent(
         model=ai_model_fixture,
         system_prompt=context_prompt, # "Help me", # 
-        result_type=OpeningContextOutput
+        result_type=ContextOutput
     )
     
     # Process through Context Enrichment Agent

@@ -13,7 +13,7 @@ from langgraph.types import Command
 from pydantic_ai import Agent, RunContext
 
 from src.ai_model import get_ai_api_key, get_ai_model, get_exa_api_key
-from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent
+from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent, DebateStateHelper
 from src.debate.prompts_models import CoordinatorOutput, CommentatorOutput
 
 from src.prompts.coordinator import coordinator_prompt
@@ -118,7 +118,7 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
         goto = "participant_agent"
 
     context_conversation = format_conversation(conversation_history)
-    context = f'Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n Always react to last message in the conversation! History of conversation: ```{context_conversation}```'
+    context = f'<task>Lead the debate. Always react to last message in the conversation!</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
 
     model = get_ai_model(state["debate_id"])
     if model is None:
@@ -126,8 +126,7 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     
     coordinator_agent = Agent(
         model=model,
-        system_prompt=coordinator_prompt,
-        deps_type=ExtrapolatedPrompt,
+        system_prompt=coordinator_prompt,        
         result_type=CoordinatorOutput
     )
     
@@ -175,9 +174,15 @@ async def participant_agent(state: DebateState):
             result_type=ParticipantResponse
         )     
 
+        @debate_agent.system_prompt()
+        def get_topic_and_last_statements() -> str:
+            return f"Topic: {state['topic']}\nLast statements: {DebateStateHelper.print_conversation_history(state)}"
+
         exa_api_key = get_exa_api_key(state["debate_id"])
         if exa_api_key is not None and exa_api_key != '':      
             print("Exa key found - Adding search tool to agent...")
+            search_tool_marker = "Use the search tool to find relevant information to support your arguments."
+            
             @debate_agent.tool
             async def search(ctx: RunContext[ExtrapolatedPrompt], query: str) -> SearchToolResponse:
                 """Search the internet for relevant information."""
@@ -194,15 +199,16 @@ async def participant_agent(state: DebateState):
                     return SearchToolResponse(web_contents=[])
         else:
             print("Exa key not found - skipping search tool")
+            search_tool_marker = ""
 
-        return debate_agent
+        return debate_agent, search_tool_marker
 
     current_speaker_no = int(state["current_speaker_uuid"])
     current_speaker_uuid = state["participants_queue"][current_speaker_no]
     conversation_history = format_conversation(state["conversation_history"])
     last_statement = state["conversation_history"][-1]
 
-    agent = create_agent(current_speaker_uuid)
+    agent, search_tool_marker = create_agent(current_speaker_uuid)
     context = ExtrapolatedPrompt(
         prompt=str(state["extrapolated_prompt"]),
         context=conversation_history,
@@ -210,7 +216,7 @@ async def participant_agent(state: DebateState):
     )
     
     agent_response = await agent.run(
-        f"You are now speaking in the debate. Answer to the last question: {last_statement.content}. Use the search tool to find relevant information to support your arguments.",
+        f"You are now speaking in the debate. Answer to the last question: {last_statement.content}. {search_tool_marker}",
         deps=context
     )
 

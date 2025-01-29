@@ -7,7 +7,7 @@ from typing import Optional
 from pydantic.networks import HttpUrl
 from src.debate.models import Persona
 
-class OpeningContextOutput(BaseModel):
+class ContextOutput(BaseModel):
     """
     Context prompt for the debate.
     """

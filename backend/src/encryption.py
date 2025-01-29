@@ -1,5 +1,4 @@
 from src import config
-import os
 import base64
 from Crypto.Cipher import AES
 

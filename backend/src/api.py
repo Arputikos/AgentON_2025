@@ -1,7 +1,11 @@
-import logging
+from slowapi.util import get_remote_address
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from slowapi import Limiter
 from src import config
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.extension import _rate_limit_exceeded_handler
 
 def add_api_key_middleware(app):
     @app.middleware("http")
@@ -31,3 +35,16 @@ def add_api_key_middleware(app):
         
         # If the token is invalid or missing, return a 403 Forbidden response
         return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+    
+
+def add_rate_limiter(app):
+    # Initialize the Limiter
+    limiter = Limiter(
+        key_func=get_remote_address,
+        application_limits=['1/5seconds', '30/1hour', '100/1day']
+    )
+
+    # Add the SlowAPI middleware to your app
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)

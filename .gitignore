@@ -4,3 +4,4 @@
 temp/
 output/
 package-lock.json
+**/bun.lockb

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from src.api import add_api_key_middleware, add_rate_limiter
 from src.encryption import decrypt
-from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
+from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement, DebateStateHelper
 from pydantic_ai import Agent
 from datetime import datetime
 from src.config import settings as global_settings
@@ -364,16 +364,19 @@ async def websocket_endpoint(websocket: WebSocket):
                 stan_debaty = DebateState(**snapshot.values)
 
                 print("Conversation history:")
-                for statement in stan_debaty["conversation_history"]:
-                    print(f"{statement.timestamp} - {statement.persona_uuid}: {statement.content}")
+                print(DebateStateHelper.print_conversation_history(stan_debaty))
 
                 moderator_agent = Agent(
                     model=model,
-                    system_prompt=moderator_prompt,
-                    deps_type=DebateState,
+                    system_prompt=moderator_prompt,                    
                     result_type=ModeratorOutput
                 )
-                moderator_result = await moderator_agent.run("Is the debate finished?", deps=stan_debaty)
+                
+                @moderator_agent.system_prompt()
+                def current_state_of_debate() -> str:
+                    return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
+                
+                moderator_result = await moderator_agent.run("Is the debate finished?")
                 print(f"Moderator result: {moderator_result}")
                 # Evaluate debate status
 
@@ -409,11 +412,15 @@ async def websocket_endpoint(websocket: WebSocket):
         if stan_debaty.get("is_debate_finished"):
             commentator_agent = Agent(
                 model=model,
-                system_prompt=commentator_prompt,
-                deps_type=DebateState,
+                system_prompt=commentator_prompt,                
                 result_type=CommentatorOutput
             )
-            commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.", deps=stan_debaty)
+
+            @commentator_agent.system_prompt()
+            def current_state_of_debate() -> str:
+                return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
+            
+            commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.")
                 
             await websocket.send_json({
                 "type": "final_message",

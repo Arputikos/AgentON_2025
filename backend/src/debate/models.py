@@ -196,6 +196,33 @@ class DebateState(TypedDict):
     participants_queue: List[str]  # Queue of participants to speak
     extrapolated_prompt: Optional[ExtrapolatedPrompt] 
 
+class DebateStateHelper:
+    """
+    Helper class for DebateState.
+    """
+    @staticmethod
+    def get_topic(state: DebateState) -> str:
+        return state["topic"]
+    
+    @staticmethod
+    def get_content(state: DebateState) -> str:
+        return "\n".join([statement.content for statement in state["conversation_history"]])
+    
+    @staticmethod
+    def print_conversation_history(state: DebateState) -> str:
+        return "\n".join([f"{statement.timestamp} - {statement.persona_uuid}: {statement.content}" for statement in state["conversation_history"]])
+    
+    @staticmethod
+    def get_participants(state: DebateState) -> str:
+        return "\n".join([f"{participant.name}" for participant in state["participants"]])
+
+    @staticmethod
+    def get_total_content_of_the_debate(state: DebateState) -> str:
+        topic: str = DebateStateHelper.get_topic(state)
+        participants = DebateStateHelper.get_participants(state)
+        content = DebateStateHelper.get_content(state)
+        return f"Topic: {topic}\nParticipants: {participants}\nContent: {content}"
+    
 # Tools
 class SearchQuery(BaseModel):
     queries: list[str] = Field(description="Search query")    

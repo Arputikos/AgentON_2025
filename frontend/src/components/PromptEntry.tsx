@@ -22,7 +22,7 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      const debateId = await startDebate(prompt, aiApiKey, exaApiKey);
+      const debateId = await startDebate(prompt, aiApiKey.trim(), exaApiKey.trim());
 
       if (debateId) {
         const stateParam = encodeURIComponent(JSON.stringify(debateId));

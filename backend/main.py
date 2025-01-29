@@ -8,7 +8,7 @@ from datetime import datetime
 import copy
 
 # prompts
-from src.ai_model import model
+from src.ai_model import get_ai_model, set_ai_api_key, set_exa_api_key
 from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
@@ -28,6 +28,7 @@ import uuid
 from typing import List
 import random
 from fastapi import HTTPException
+import os
 
 app = FastAPI()
 
@@ -49,8 +50,26 @@ async def process_prompt(request: PromptRequest):
     """
     API endpoint that processes user prompt and returns debate configuration.
     """
-    print("Received prompt:", request.prompt, "using model:", model.model_name)
+    print("Received prompt:", request.prompt)
+    #print("API key: ", request.ai_api_key)
+    #print("Exa API key: ", request.exa_api_key)
     try:
+        debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
+
+        # Save API keys to os variables
+        set_ai_api_key(debate_id, request.ai_api_key)
+        set_exa_api_key(debate_id, request.exa_api_key)
+
+        model = get_ai_model(debate_id)
+        if model is None:
+            print(f"Error processing prompt: {str(e)}, debate id: {debate_id}. AI model is none")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to process debate prompt. Please try again."
+            )
+        
+        print("Using LLM model: ", model.model_name)
+
         # Create the Context Enrichment Agent
         context_agent = Agent(
             model=model,
@@ -61,8 +80,6 @@ async def process_prompt(request: PromptRequest):
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
         print(f"Enriched context: {enriched_context.data}")
-        
-        debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
@@ -134,6 +151,15 @@ async def websocket_endpoint(websocket: WebSocket):
             
         print(f"Loaded debate prompt: {extrapolated_prompt}")
         print(f"Loaded debate config: {debate_config}")
+
+        model = get_ai_model(debate_id)
+        if model is None:
+            print(f"Error processing prompt: {str(e)}, debate id: {debate_id}. AI model is none")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to process debate prompt. Please try again."
+            )
+        print("Using LLM model: ", model.model_name)
 
         # Create the Required Personas Extractor Agent
         rpea_agent = Agent(
@@ -270,7 +296,8 @@ async def websocket_endpoint(websocket: WebSocket):
             comments_history=[],
             is_debate_finished=False,
             participants_queue=[],
-            extrapolated_prompt=extrapolated_prompt
+            extrapolated_prompt=extrapolated_prompt,
+            debate_id=debate_id
         )
         
         async def stream_graph_updates(input_message: dict, config: dict):            

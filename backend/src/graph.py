@@ -12,7 +12,7 @@ from langgraph.types import Command
 
 from pydantic_ai import Agent, RunContext
 
-from src.ai_model import model
+from src.ai_model import get_ai_api_key, get_ai_model
 from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent
 from src.debate.prompts_models import CoordinatorOutput, CommentatorOutput
 
@@ -63,21 +63,6 @@ def build_debate_context(state: DebateState) -> dict:
         "conversation_history": format_conversation(state["conversation_history"])
     }
 
-# Agents
-commentator_agent = Agent(
-    model=model,
-    system_prompt=commentator_prompt,
-    deps_type=ExtrapolatedPrompt,
-    result_type=CommentatorOutput  # or your specific CommentatorOutput type
-)
-
-coordinator_agent = Agent(
-    model=model,
-    system_prompt=coordinator_prompt,
-    deps_type=ExtrapolatedPrompt,
-    result_type=CoordinatorOutput
-)
-
 # Personas
 personas = [COMMENTATOR_PERSONA, COORDINATOR_PERSONA]
 
@@ -93,6 +78,17 @@ async def summarizer(state: DebateState):
     formatted_history = format_conversation(conversation_history)
     if state["extrapolated_prompt"] is None:
         raise ValueError("Extrapolated prompt is missing")
+    model = get_ai_model(state.debate_id)
+    if model is None:
+        raise ValueError(f"Cannot load LLM model for debate id: ", state.debate_id)
+    
+    commentator_agent = Agent(
+        model=model,
+        system_prompt=commentator_prompt,
+        deps_type=ExtrapolatedPrompt,
+        result_type=CommentatorOutput  # or your specific CommentatorOutput type
+    )
+    
     summary = await commentator_agent.run(formatted_history, deps=state["extrapolated_prompt"])
   
     statement : Statement = Statement(
@@ -123,6 +119,17 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
 
     context_conversation = format_conversation(conversation_history)
     context = f'Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n Always react to last message in the conversation! History of conversation: ```{context_conversation}```'
+
+    model = get_ai_model(state.debate_id)
+    if model is None:
+        raise ValueError(f"Cannot load LLM model for debate id: ", state.debate_id)
+    
+    coordinator_agent = Agent(
+        model=model,
+        system_prompt=coordinator_prompt,
+        deps_type=ExtrapolatedPrompt,
+        result_type=CoordinatorOutput
+    )
     
     coordinator_output = await coordinator_agent.run(context)
     next_speaker_uuid = coordinator_output.data.next_speaker_uuid
@@ -157,6 +164,10 @@ async def participant_agent(state: DebateState):
         if not persona:
             raise ValueError(f"No persona found with UUID: {uuid}")
             
+        model = get_ai_model(state.debate_id)
+        if model is None:
+            raise ValueError(f"Cannot load LLM model for debate id: ", state.debate_id)
+        
         debate_agent = Agent(
             model=model,
             system_prompt=persona.system_prompt,

@@ -153,8 +153,6 @@ class Moderator(BaseModel):
 class DebateConfig(BaseModel):
     speakers: list[Persona]
     prompt: str
-    ai_api_key: str
-    exa_api_key: Optional[str]
 
 # prompt od użytkownika
 class PromptRequest(BaseModel):
@@ -187,6 +185,7 @@ class DebateState(TypedDict):
     """
     State of the debate, including the current speaker, round number, conversation history, and whether the debate is finished.
     """
+    debate_id: str
     topic: str
     participants: List[Persona]
     current_speaker_uuid: str  # Current uuid of the speaker of the debate

@@ -2,8 +2,9 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 class Settings(BaseSettings):
-    SECRET_KEY: str = None
-    SECRET_KEY_IV: str = None
+    SECRET_KEY: str
+    SECRET_KEY_IV: str
+    API_ENDPOINTS_AUTH_HEADER_KEY: str
     MODEL_NAME: str = "gpt-4o"
     MAX_ROUNDS: int = 3
     
@@ -12,4 +13,4 @@ class Settings(BaseSettings):
         "env_file_encoding": "utf-8"
     }
 
-settings = Settings() 
+settings = Settings()

@@ -2,6 +2,7 @@ from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from src.api import add_api_key_middleware
 from src.encryption import decrypt
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from pydantic_ai import Agent
@@ -42,6 +43,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Require Authorization header in requests
+add_api_key_middleware(app)
 
 # Create output directory if it doesn't exist
 OUTPUT_DIR = Path("output")

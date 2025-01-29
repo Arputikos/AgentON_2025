@@ -359,8 +359,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     snapshot = graph.get_state(config)
                     if not snapshot.next:
                         break
-                
-                stan_debaty = snapshot.values # TODO to jest cicha zmiana typu, do poprawy
+
+                print("Round loop finished")
+                stan_debaty = DebateState(**snapshot.values)
 
                 print("Conversation history:")
                 for statement in stan_debaty["conversation_history"]:
@@ -369,7 +370,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,
-                    deps_type=dict,
+                    deps_type=DebateState,
                     result_type=ModeratorOutput
                 )
                 moderator_result = await moderator_agent.run("Is the debate finished?", deps=stan_debaty)

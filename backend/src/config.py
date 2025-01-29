@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     API_ENDPOINTS_AUTH_HEADER_KEY: str
     NEXT_PUBLIC_WEBSOCKET_AUTH_KEY: str
     MODEL_NAME: str = "gpt-4o"
+    OPENAI_API_KEY: str = ""
+    DEEPSEEK_API_KEY: str = ""
     MAX_ROUNDS: int = 3
     
     model_config = {

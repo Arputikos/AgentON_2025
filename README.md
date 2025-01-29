@@ -26,12 +26,23 @@ Debate Arena to zaawansowany system wieloagentowy do prowadzenia debat, wykorzys
 git clone git@github.com:Arputikos/AgentON_2025.git
 ```
 
-2. W folderze backend projektu skopiuj plik `.env-example` do `.env`.
-Dodaj klucze `SECRET_KEY` oraz `SECRET_KEY_IV` wygenerowane w ten sposób:
-```
+2. W folderze `backend` projektu skopiuj plik `.env-example` do `.env`.
+Dodaj klucze:
+- `SECRET_KEY` 
+- `SECRET_KEY_IV` 
+- `API_ENDPOINTS_AUTH_HEADER_KEY`
+- `NEXT_PUBLIC_WEBSOCKET_AUTH_KEY`
+
+wygenerowane w ten sposób:
+- dla `SECRET_KEY`
+``` bash
 node -e "console.log('KEY:', require('crypto').randomBytes(32).toString('hex'))"
-node -e "console.log('IV :', require('crypto').randomBytes(16).toString('hex'))"
 ```
+- dla pozostałych kluczy
+``` bash    
+node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+```
+
 Będą to klucze używane do szyfrowania kluczy API przesyłanych z frontendu na backend.
 
 3. Uruchom backend:

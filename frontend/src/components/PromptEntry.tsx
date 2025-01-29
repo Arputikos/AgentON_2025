@@ -71,7 +71,7 @@ export default function Home() {
               🗝️Enter API key (Deepseek or OpenAI)
             </label>
             <input
-              type="text"
+              type="password"
               value={aiApiKey}
               onChange={(e) => setAIApiKey(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
@@ -83,7 +83,7 @@ export default function Home() {
               🗝️Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but better results with!)
             </label>
             <input
-              type="text"
+              type="password"
               value={exaApiKey}
               onChange={(e) => setExaApiKey(e.target.value)}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"

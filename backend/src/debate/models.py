@@ -200,6 +200,7 @@ class DebateState(TypedDict):
 class SearchQuery(BaseModel):
     queries: list[str] = Field(description="Search query")    
     query_id: str = Field(description="Unique identifier for the search query")
+    exa_api_key: str
 
 class SearchResult(BaseModel):
     query_id: str = Field(description="Unique identifier for the search query")

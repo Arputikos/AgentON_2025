@@ -12,7 +12,7 @@ from langgraph.types import Command
 
 from pydantic_ai import Agent, RunContext
 
-from src.ai_model import get_ai_api_key, get_ai_model
+from src.ai_model import get_ai_api_key, get_ai_model, get_exa_api_key
 from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent
 from src.debate.prompts_models import CoordinatorOutput, CommentatorOutput
 
@@ -181,7 +181,8 @@ async def participant_agent(state: DebateState):
             try:
                 search_query = SearchQuery(                
                     queries=[query],
-                    query_id=str(uuid4())
+                    query_id=str(uuid4()),
+                    exa_api_key=get_exa_api_key(state.debate_id)
                 )
                 results = await websearch(search_query)
                 return SearchToolResponse(web_contents=results)

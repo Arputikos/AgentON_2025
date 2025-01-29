@@ -120,8 +120,8 @@ async def websocket_endpoint(websocket: WebSocket):
         print("WebSocket connection accepted")
 
         authorization = await websocket.receive_text()
-        if authorization != global_settings.API_ENDPOINTS_AUTH_HEADER_KEY:
-            print("Error: websocket authorization key not found or invalid!")
+        if authorization != global_settings.NEXT_PUBLIC_WEBSOCKET_AUTH_KEY:
+            print("Error: websocket authorization key not found or invalid: ", authorization)
             await websocket.close()
             return
         

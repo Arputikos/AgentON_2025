@@ -21,7 +21,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
       ws.onopen = () => {
         console.log("WebSocket connected successfully");
         //Sending authorization key
-        ws.send(process.env.API_ENDPOINTS_AUTH_HEADER_KEY!);
+        ws.send(process.env.NEXT_PUBLIC_WEBSOCKET_AUTH_KEY!);
         setIsConnected(true);
       };
 

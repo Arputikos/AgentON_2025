@@ -118,7 +118,7 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
         goto = "participant_agent"
 
     context_conversation = format_conversation(conversation_history)
-    context = f'Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n Always react to last message in the conversation! History of conversation: ```{context_conversation}```'
+    context = f'<task>Lead the debate. Always react to last message in the conversation!</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
 
     model = get_ai_model(state["debate_id"])
     if model is None:
@@ -126,8 +126,7 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     
     coordinator_agent = Agent(
         model=model,
-        system_prompt=coordinator_prompt,
-        deps_type=ExtrapolatedPrompt,
+        system_prompt=coordinator_prompt,        
         result_type=CoordinatorOutput
     )
     

@@ -18,7 +18,7 @@ from src.prompts.prompt_crafter import prompt_crafter_prompt
 from src.prompts.opening import opening_agent_prompt
 from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
-from src.debate.prompts_models import OpeningContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
+from src.debate.prompts_models import ContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
 from src.graph import graph, get_persona_by_uuid, get_summary
 from src.debate.const_personas import CONST_PERSONAS
@@ -80,7 +80,7 @@ async def process_prompt(request: PromptRequest):
         context_agent = Agent(
             model=model,
             system_prompt=context_prompt,
-            result_type=OpeningContextOutput
+            result_type=ContextOutput
         )
         
         # Process through Context Enrichment Agent
@@ -285,13 +285,12 @@ async def websocket_endpoint(websocket: WebSocket):
         opening_user_prompt = f"Debate topic: {extrapolated_prompt} \nPersonas: {persona_full_list} \nWhat is the opening for this debate?"
         opening_result = await opening_agent.run(opening_user_prompt) 
         print(f"Opening: {opening_result.data.opening}") 
-        print(f"welcome_message: {opening_result.data.welcome_message}") 
         print(f"topic_introduction: {opening_result.data.topic_introduction}") 
         print(f"personas_introduction: {opening_result.data.personas_introduction}") 
 
         opening_stmt: Statement = Statement(
             uuid=str(uuid.uuid4()),
-            content=f"Opening statement:{opening_result.data.opening}\n Welcome message:{opening_result.data.welcome_message}\nTopic introduction:{opening_result.data.topic_introduction}",
+            content=f"Opening statement:{opening_result.data.opening}\n Topic introduction:{opening_result.data.topic_introduction}",
             persona_uuid=str(opening_persona.uuid),
             timestamp=datetime.now()
         )

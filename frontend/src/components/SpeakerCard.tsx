@@ -12,7 +12,7 @@ interface SpeakerCardProps {
   }
 
 export default function SpeakerCard({ name, role, avatar, position }: SpeakerCardProps) {
-  console.log('SpeakerCard rendered:', { name, role, avatar, position });
+  //console.log('SpeakerCard rendered:', { name, role, avatar, position });
   
   return (
     <div

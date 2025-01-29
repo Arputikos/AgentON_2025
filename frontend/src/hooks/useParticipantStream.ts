@@ -117,7 +117,7 @@ export function useParticipantStream(debateId: string | null) {
               }
             ]
           }));
-          console.log('📝 Received message:', data.statement.content);
+          console.log('📝 Received message:', data.message);
           break;
 
       case 'error':

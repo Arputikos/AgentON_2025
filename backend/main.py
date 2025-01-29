@@ -2,13 +2,14 @@ from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from src.encryption import decrypt
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from pydantic_ai import Agent
 from datetime import datetime
 import copy
 
 # prompts
-from src.ai_model import model
+from src.ai_model import get_ai_model, set_ai_api_key, set_exa_api_key
 from src.prompts.context import context_prompt
 from src.prompts.rpea import rpea_prompt
 from src.prompts.prompt_crafter import prompt_crafter_prompt
@@ -28,6 +29,8 @@ import uuid
 from typing import List
 import random
 from fastapi import HTTPException
+import os
+import traceback
 
 app = FastAPI()
 
@@ -49,8 +52,24 @@ async def process_prompt(request: PromptRequest):
     """
     API endpoint that processes user prompt and returns debate configuration.
     """
-    print("Received prompt:", request.prompt, "using model:", model.model_name)
+    print("Received prompt:", request.prompt)
     try:
+        debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
+
+        # Save API keys to os variables
+        set_ai_api_key(debate_id, decrypt(request.ai_api_key))
+        set_exa_api_key(debate_id, decrypt(request.exa_api_key))
+
+        model = get_ai_model(debate_id)
+        if model is None:
+            print(f"Error processing prompt: {str(e)}, debate id: {debate_id}. AI model is none")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to process debate prompt. Please try again."
+            )
+        
+        print("Using LLM model: ", model.model_name)
+
         # Create the Context Enrichment Agent
         context_agent = Agent(
             model=model,
@@ -61,8 +80,6 @@ async def process_prompt(request: PromptRequest):
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
         print(f"Enriched context: {enriched_context.data}")
-        
-        debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
@@ -134,6 +151,15 @@ async def websocket_endpoint(websocket: WebSocket):
             
         print(f"Loaded debate prompt: {extrapolated_prompt}")
         print(f"Loaded debate config: {debate_config}")
+
+        model = get_ai_model(debate_id)
+        if model is None:
+            print(f"Error processing prompt: {str(e)}, debate id: {debate_id}. AI model is none")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to process debate prompt. Please try again."
+            )
+        print("Using LLM model: ", model.model_name)
 
         # Create the Required Personas Extractor Agent
         rpea_agent = Agent(
@@ -270,31 +296,37 @@ async def websocket_endpoint(websocket: WebSocket):
             comments_history=[],
             is_debate_finished=False,
             participants_queue=[],
-            extrapolated_prompt=extrapolated_prompt
+            extrapolated_prompt=extrapolated_prompt,
+            debate_id=debate_id
         )
         
-        async def stream_graph_updates(input_message: dict, config: dict):            
-            current_state: dict = copy.deepcopy(input_message)
-            async for event in graph.astream(current_state, config=config):
-                for state_update in event.values():
-                    if not state_update:
-                        continue
-                    try:
-                        last_statement = state_update["conversation_history"][-1]
-                        persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
-                        if persona:
-                            name = persona.name
-                        else:
-                            print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Coordinator name")
-                            name = "Coordinator"
-                        
-                        reply = data_to_frontend_payload(name, last_statement.content)
-                        print(f"Persona {name} said: {last_statement.content}")
-                        await websocket.send_json(reply)
-                        # Update current state with the new state
-                        current_state = state_update
-                    except Exception as e:
-                        print(e)
+        async def stream_graph_updates(input_message: dict, config: dict):  
+            try:          
+                current_state: dict = copy.deepcopy(input_message)
+                async for event in graph.astream(current_state, config=config):
+                    for state_update in event.values():
+                        if not state_update:
+                            continue
+                        try:
+                            last_statement = state_update["conversation_history"][-1]
+                            persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
+                            if persona:
+                                name = persona.name
+                            else:
+                                print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Coordinator name")
+                                name = "Coordinator"
+                            
+                            reply = data_to_frontend_payload(name, last_statement.content)
+                            print(f"Persona {name} said: {last_statement.content}")
+                            await websocket.send_json(reply)
+                            # Update current state with the new state
+                            current_state = state_update
+                        except Exception as e:
+                            print("Error in stream_graph_updates astream: ", e)
+                            print("Full stack trace:", traceback.format_exc())
+            except Exception as e:
+                print("Error in stream_graph_updates: ", e)
+                print("Full stack trace:", traceback.format_exc())
 
         while True:  # Debate loop
             try:

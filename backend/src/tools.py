@@ -1,4 +1,6 @@
 from langchain_core.tools import Tool
+
+from src.ai_model import get_exa_api_key
 from .debate.models import SearchQuery, SearchResult, WebContent
 from .config import settings
 from exa_py import Exa
@@ -16,7 +18,7 @@ def calculator_function(expression: str) -> dict:
 
 async def websearch(search_query: SearchQuery) -> list[WebContent]:
     """Execute web search using Exa API"""
-    exa_client = Exa(api_key=settings.EXA_API_KEY)
+    exa_client = Exa(api_key=get_exa_api_key(search_query.exa_api_key))
     final_results = SearchResult(urls=[], query_id=search_query.query_id)
     for query in search_query.queries[:1]:
         results = SearchResult(urls=[], query_id=search_query.query_id)

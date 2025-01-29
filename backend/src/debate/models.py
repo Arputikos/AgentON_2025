@@ -157,6 +157,8 @@ class DebateConfig(BaseModel):
 # prompt od użytkownika
 class PromptRequest(BaseModel):
     prompt: str
+    ai_api_key: str
+    exa_api_key: Optional[str]
 
 # Statements of the participants
 class Statement(BaseModel):
@@ -183,6 +185,7 @@ class DebateState(TypedDict):
     """
     State of the debate, including the current speaker, round number, conversation history, and whether the debate is finished.
     """
+    debate_id: str
     topic: str
     participants: List[Persona]
     current_speaker_uuid: str  # Current uuid of the speaker of the debate
@@ -197,6 +200,7 @@ class DebateState(TypedDict):
 class SearchQuery(BaseModel):
     queries: list[str] = Field(description="Search query")    
     query_id: str = Field(description="Unique identifier for the search query")
+    exa_api_key: str
 
 class SearchResult(BaseModel):
     query_id: str = Field(description="Unique identifier for the search query")

@@ -26,6 +26,7 @@ export default function Home() {
 
       if (debateId) {
         const stateParam = encodeURIComponent(JSON.stringify(debateId));
+
         router.push(`/debate-room?state=${stateParam}`);
       } else {
         console.error('Failed to initialize debate: Invalid response format');

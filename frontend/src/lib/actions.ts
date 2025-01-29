@@ -10,6 +10,7 @@ export async function startDebate(prompt: string, aiApiKey: string, exaApiKey: s
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.API_ENDPOINTS_AUTH_HEADER_KEY}`
     },
     body: JSON.stringify({
       prompt: prompt.trim(),

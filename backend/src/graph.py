@@ -173,23 +173,28 @@ async def participant_agent(state: DebateState):
             system_prompt=persona.system_prompt,
             deps_type=ExtrapolatedPrompt,
             result_type=ParticipantResponse
-        )           
+        )     
 
-        @debate_agent.tool
-        async def search(ctx: RunContext[ExtrapolatedPrompt], query: str) -> SearchToolResponse:
-            """Search the internet for relevant information."""
-            try:
-                search_query = SearchQuery(                
-                    queries=[query],
-                    query_id=str(uuid4()),
-                    exa_api_key=get_exa_api_key(state["debate_id"])
-                )
-                results = await websearch(search_query)
-                return SearchToolResponse(web_contents=results)
-            except Exception as e:
-                print(f"Error searching: {e}")
-                return SearchToolResponse(web_contents=[])
-        return debate_agent
+        exa_api_key = get_exa_api_key(state["debate_id"])
+        if exa_api_key is not None and exa_api_key != '':      
+            print("Exa key found - Adding search tool to agent...")
+            @debate_agent.tool
+            async def search(ctx: RunContext[ExtrapolatedPrompt], query: str) -> SearchToolResponse:
+                """Search the internet for relevant information."""
+                try:
+                    search_query = SearchQuery(                
+                        queries=[query],
+                        query_id=str(uuid4()),
+                        exa_api_key=exa_api_key
+                    )
+                    results = await websearch(search_query)
+                    return SearchToolResponse(web_contents=results)
+                except Exception as e:
+                    print(f"Error searching: {e}")
+                    return SearchToolResponse(web_contents=[])
+            return debate_agent
+        else:
+            print("Exa key not found - skipping search tool")
         
     current_speaker_no = int(state["current_speaker_uuid"])
     current_speaker_uuid = state["participants_queue"][current_speaker_no]

@@ -2,10 +2,12 @@ from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from src.api import add_api_key_middleware
 from src.encryption import decrypt
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from pydantic_ai import Agent
 from datetime import datetime
+from src.config import settings as global_settings
 import copy
 
 # prompts
@@ -42,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Require Authorization header in requests
+add_api_key_middleware(app)
 
 # Create output directory if it doesn't exist
 OUTPUT_DIR = Path("output")
@@ -113,6 +118,12 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         await websocket.accept()
         print("WebSocket connection accepted")
+
+        authorization = await websocket.receive_text()
+        if authorization != global_settings.NEXT_PUBLIC_WEBSOCKET_AUTH_KEY:
+            print("Error: websocket authorization key not found or invalid: ", authorization)
+            await websocket.close()
+            return
         
         def data_to_frontend_payload(name: str, content: str):
             return {

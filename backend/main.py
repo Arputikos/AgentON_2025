@@ -30,6 +30,7 @@ from typing import List
 import random
 from fastapi import HTTPException
 import os
+import traceback
 
 app = FastAPI()
 
@@ -299,28 +300,33 @@ async def websocket_endpoint(websocket: WebSocket):
             debate_id=debate_id
         )
         
-        async def stream_graph_updates(input_message: dict, config: dict):            
-            current_state: dict = copy.deepcopy(input_message)
-            async for event in graph.astream(current_state, config=config):
-                for state_update in event.values():
-                    if not state_update:
-                        continue
-                    try:
-                        last_statement = state_update["conversation_history"][-1]
-                        persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
-                        if persona:
-                            name = persona.name
-                        else:
-                            print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Coordinator name")
-                            name = "Coordinator"
-                        
-                        reply = data_to_frontend_payload(name, last_statement.content)
-                        print(f"Persona {name} said: {last_statement.content}")
-                        await websocket.send_json(reply)
-                        # Update current state with the new state
-                        current_state = state_update
-                    except Exception as e:
-                        print(e)
+        async def stream_graph_updates(input_message: dict, config: dict):  
+            try:          
+                current_state: dict = copy.deepcopy(input_message)
+                async for event in graph.astream(current_state, config=config):
+                    for state_update in event.values():
+                        if not state_update:
+                            continue
+                        try:
+                            last_statement = state_update["conversation_history"][-1]
+                            persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
+                            if persona:
+                                name = persona.name
+                            else:
+                                print(f"Persona not found for UUID: {last_statement.persona_uuid}, using Coordinator name")
+                                name = "Coordinator"
+                            
+                            reply = data_to_frontend_payload(name, last_statement.content)
+                            print(f"Persona {name} said: {last_statement.content}")
+                            await websocket.send_json(reply)
+                            # Update current state with the new state
+                            current_state = state_update
+                        except Exception as e:
+                            print("Error in stream_graph_updates astream: ", e)
+                            print("Full stack trace:", traceback.format_exc())
+            except Exception as e:
+                print("Error in stream_graph_updates: ", e)
+                print("Full stack trace:", traceback.format_exc())
 
         while True:  # Debate loop
             try:

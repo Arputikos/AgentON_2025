@@ -7,6 +7,7 @@ from src.encryption import decrypt
 from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement
 from pydantic_ai import Agent
 from datetime import datetime
+from src.config import settings as global_settings
 import copy
 
 # prompts
@@ -117,6 +118,12 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         await websocket.accept()
         print("WebSocket connection accepted")
+
+        authorization = await websocket.receive_text()
+        if authorization != global_settings.API_ENDPOINTS_AUTH_HEADER_KEY:
+            print("Error: websocket authorization key not found or invalid!")
+            await websocket.close()
+            return
         
         def data_to_frontend_payload(name: str, content: str):
             return {

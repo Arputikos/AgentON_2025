@@ -12,9 +12,9 @@ import copy
 
 # prompts
 from src.ai_model import get_ai_model, set_ai_api_key, set_exa_api_key
-from src.prompts.context import context_prompt
-from src.prompts.rpea import rpea_prompt
-from src.prompts.prompt_crafter import prompt_crafter_prompt
+from src.prompts.simple_context_prompt import context_prompt
+from src.prompts.simple_rpea_prompt import rpea_prompt
+from src.prompts.simple_prompt_crafter_prompt import prompt_crafter_prompt
 from src.prompts.opening import opening_agent_prompt
 from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt

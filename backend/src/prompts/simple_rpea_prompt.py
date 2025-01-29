@@ -1,6 +1,6 @@
 # Generates list of personas to participate in the debate
 
-simple_rpea_prompt = """
+rpea_prompt = """
 # **Required Personas Extractor Agent (RPEA) – Optimized & Unbiased Version**  
 
 ---

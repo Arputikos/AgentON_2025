@@ -12,16 +12,15 @@ def is_openai_api_key(api_key: str):
     try:
         response = requests.get(url, headers=headers, timeout=5)
         if response.status_code == 200:
-            print("Prawidłowy klucz API od OpenAI.")
             return True
         elif response.status_code == 401:
-            print("Nieprawidłowy klucz API (401 Unauthorized).")
+            print("Incorrect OpenAI API key (401 Unauthorized).")
             return False
         else:
-            print(f"Błąd: {response.status_code} - {response.text}")
+            print(f"Error: {response.status_code} - {response.text}")
             return False
     except requests.RequestException as e:
-        print(f"Błąd połączenia: {e}")
+        print(f"Connection error: {e}")
         return False
     
 def set_ai_api_key(debate_id: str, api_key: str):
@@ -40,11 +39,13 @@ def get_ai_model(debate_id: str):
         return None
     
     if is_openai_api_key(key):
+        print("Loading OpenAI LLM Model")
         return OpenAIModel(
             settings.MODEL_NAME,
             api_key=key
         )
     else: #assume deepseek
+        print("Loading Deepseek LLM Model")
         return OpenAIModel(
             'deepseek-chat',
             base_url='https://api.deepseek.com/v1',

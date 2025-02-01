@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { v7 } from 'uuid'
-import { calculatePosition, assignSpeakerColor, showSpeakerNotification } from '@/lib/utils';
-import toast from 'react-hot-toast';
-
+import { calculatePosition, assignSpeakerColor } from '@/lib/utils';
 
 // INTERFACES RECIEVED FROM WEBSOCKET
 interface Participant {
@@ -107,6 +105,7 @@ export function useWebsocketStream(debateId: string | null) {
                 minute: '2-digit', 
                 hour12: false 
               }),
+              borderColor: prev.participants.find(p => p.name === data.data.name)?.backgroundColor || '#000', // default border color if not found
               isComplete: true
             }
           ]
@@ -114,21 +113,22 @@ export function useWebsocketStream(debateId: string | null) {
         break;
 
       case 'final_message':
-          setStreamState(prev => ({
-            ...prev,
-            debateFinished: true,
-            messages: [
-              ...prev.messages,
-              {
-                id: '1234',//TODO
-                content: data.commentator_result,
-                sender: "FINAL DEBATE RESULT",
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-                isComplete: true
-              }
-            ]
-          }));
-          break;
+        setStreamState(prev => ({
+          ...prev,
+          debateFinished: true,
+          messages: [
+            ...prev.messages,
+            {
+              id: '1234',
+              content: data.commentator_result,
+              sender: "FINAL DEBATE RESULT",
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+              borderColor: '#000',
+              isComplete: true
+            }
+          ]
+        }));
+        break;
 
       case 'error':
         setStreamState(prev => ({

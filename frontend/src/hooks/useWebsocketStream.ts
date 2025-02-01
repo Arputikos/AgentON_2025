@@ -31,7 +31,6 @@ interface WebsocketStreamState {
   debateFinished: boolean;
   participants: Participant[];
   error: string | null;
-  topic: string | null;
   messages: Message[];
 }
 
@@ -42,20 +41,11 @@ export function useWebsocketStream(debateId: string | null) {
     debateFinished: false,
     participants: [],
     error: null,
-    topic: null,
     messages: [],
   });
 
   const handleWebSocketMessage = useCallback((data: any) => {
     switch (data.type) {
-
-      case 'debate_topic':
-        setStreamState(prev => ({
-          ...prev,
-          topic: data.data.topic,
-          isInitializing: true
-        }));
-        break;
 
       case 'persona':
         const persona = data.data;

@@ -23,11 +23,12 @@ export default function Home() {
 
     try {
       const debateId = await startDebate(prompt, aiApiKey.trim(), exaApiKey.trim());
+      const stateParam = encodeURIComponent(JSON.stringify(debateId));
+      const topicParam = encodeURIComponent(prompt);
 
       if (debateId) {
         const stateParam = encodeURIComponent(JSON.stringify(debateId));
-
-        router.push(`/debate-room?state=${stateParam}`);
+        router.push(`/debate-room?state=${stateParam}&topic=${topicParam}`);
       } else {
         console.error('Failed to initialize debate: Invalid response format');
       }

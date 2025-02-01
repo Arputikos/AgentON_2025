@@ -12,12 +12,16 @@ import { Github } from 'lucide-react';
 import Loader from '@/components/Loader';
 import { showSpeakerNotification } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'next/navigation';
 
 interface DebateRoomProps {
   debateId: string | null;
+  topic: string | null;
 }
 
-export default function DebateRoom({ debateId }: DebateRoomProps) {
+export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoomProps) {
+  const searchParams = useSearchParams();
+  const [displayTopic, setDisplayTopic] = useState<string>('Loading...');
   const [showChat, setShowChat] = useState(true);
   const { isConnected } = useWebSocket();
   
@@ -26,11 +30,20 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
     debateFinished,
     participants,
     error: participantError,
-    topic,
     messages
   } = useWebsocketStream(debateId);
 
   const prevParticipantsLength = useRef(0);
+  
+  // get topic from url
+  useEffect(() => {
+    const topicFromUrl = searchParams.get('topic');
+    if (topicFromUrl) {
+      setDisplayTopic(decodeURIComponent(topicFromUrl));
+    } else if (initialTopic) {
+      setDisplayTopic(initialTopic);
+    }
+  }, [searchParams, initialTopic]);
 
   // Show notification when new participant joins - needs to be triggered from debate room 
   useEffect(() => {
@@ -54,7 +67,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
               </Link>
               <div className="flex flex-col">
                 <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
-                <p className="text-gray-600 mt-1 text-sm">Topic: {topic}</p>
+                <p className="text-gray-600 mt-1 text-sm">Topic: {displayTopic}</p>
               </div>
             </div>
 

@@ -117,7 +117,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
               </div>
 
               {participants.length > 0 ? (
-                participants.map((participant, index) => (
+                participants.map(participant => (
                   <SpeakerCard
                     key={participant.id}
                     name={participant.name}
@@ -128,21 +128,19 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                   />
                 ))
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {isInitializing ? (
-                    <div className="flex flex-col items-center">
-                      <Loader size="lg" color="primary" />
-                      <span className="text-gray-600 mt-4">Waiting for speakers...</span>
-                    </div>
-                  ) : (
-                    "No speakers yet"
-                  )}
+                ""
+              )}
+
+              {/* Keep the loader in the center */}
+              {isInitializing ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Loader size="lg" color="primary" />
                 </div>
+              ) : (
+                ""
               )}
             </div>
           </div>
-
-          {/* Chat History */}
           <div
             className={`bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out overflow-y-auto ${
               showChat 

@@ -42,7 +42,7 @@ export function useWebsocketStream(debateId: string | null) {
     participants: [],
     error: null,
     topic: null,
-    messages: []
+    messages: [],
   });
 
   const handleWebSocketMessage = useCallback((data: any) => {

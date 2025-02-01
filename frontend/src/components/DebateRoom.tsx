@@ -152,7 +152,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
 
           {/* Chat History */}
           <div
-            className={`bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out ${
+            className={`bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out overflow-y-auto ${
               showChat 
                 ? "translate-x-0 opacity-100 visible scale-95" 
                 : "translate-x-full opacity-0 invisible"

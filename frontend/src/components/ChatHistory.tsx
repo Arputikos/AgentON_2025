@@ -29,7 +29,7 @@ export default function ChatHistory({ messages }: ChatHistoryProps) {
       <div className="flex items-center space-x-4 mb-8">
         <h3 className="font-semibold text-xl">Debate History</h3>
       </div>
-      <div className="border-t pt-6">
+      <div className="border-t py-6">
         <div className="space-y-4 h-[calc(100%-8rem)] overflow-y-auto" ref={messagesEndRef}>
           {messages.length <= 0 ? (
             <div className="flex flex-col items-center pt-6">

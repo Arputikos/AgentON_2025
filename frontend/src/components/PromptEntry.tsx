@@ -23,7 +23,6 @@ export default function Home() {
 
     try {
       const debateId = await startDebate(prompt, aiApiKey.trim(), exaApiKey.trim());
-      const stateParam = encodeURIComponent(JSON.stringify(debateId));
       const topicParam = encodeURIComponent(prompt);
 
       if (debateId) {

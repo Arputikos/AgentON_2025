@@ -188,16 +188,8 @@ async def websocket_endpoint(websocket: WebSocket):
         debate_personas = personas_full_list_RPEA.personas.copy()
 
         ###
-        ### SEND THE TOPIC OF THE DEBATE AND THE PARTICIPANTS TO THE CLIENT 
+        ### SEND THE PARTICIPANTS TO THE CLIENT 
         ###
-
-        # Send debate topic to client
-        await websocket.send_json({
-            "type": "debate_topic",
-            "data": {
-                "topic": extrapolated_prompt
-            }
-        })
 
         # Insert moderator and opening personas
         moderator_persona = Persona(
@@ -232,8 +224,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Add coordinator and commentator to the full list
         personas_full_list_RPEA.personas.extend(CONST_PERSONAS) 
-
-        print("Personas completed")
         
         # SETUP PROMPTÓW DLA AGENTÓW 
         # Create the Prompt Crafter Agent

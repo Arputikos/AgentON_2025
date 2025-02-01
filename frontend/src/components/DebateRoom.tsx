@@ -64,7 +64,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   }, [participants, isInitializing, isComplete]);
 
   return (
-    <div className="h-screen w-full bg-gray-100 overflow-hidden">
+    <div className="h-screen w-full bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-md h-24">
         <div className="h-full w-full px-6 flex items-center justify-between">
@@ -110,22 +110,34 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
         </div>
       </header>
 
-      <main className="h-[calc(100%-8rem)] w-full p-4 px-12">
-        <div className="grid grid-cols-12 gap-8 h-full">
-          {/* Moderator Panel - Left Side */}
-          <div className="col-span-2">
+      <main className="flex-1 w-full py-8 px-12 overflow-hidden">
+        <div
+          className="grid gap-8 h-full transition-all duration-300 ease-in-out"
+          style={{
+            gridTemplateColumns: showChat ? "3fr 6fr 3fr" : "3fr 9fr",
+          }}
+        >
+          {/* Moderator Panel */}
+          <div className="bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out"
+            style={{
+              transform: showChat ? "scale(0.95)" : "scale(1)",
+            }}
+          >
             <ModeratorCard />
           </div>
 
-          {/* Debate Table - Center */}
-          <div className="col-span-5 bg-white rounded-xl shadow-md p-8">
-            <div className="relative w-full aspect-square">
-              {/* Virtual Round Table */}
+          {/* Debate Table */}
+          <div
+            className="bg-white p-8 rounded-xl shadow-md h-full flex items-center justify-center min-w-0 transition-transform duration-300 ease-in-out"
+            style={{
+              transform: showChat ? "scale(0.95)" : "scale(1)",
+            }}
+          >
+            <div className="relative w-full aspect-square max-w-[800px]">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-3/4 h-3/4 bg-gray-100 rounded-full border-8 border-gray-200 shadow-inner" />
               </div>
 
-              {/* Speakers around the table */}
               {speakers.length > 0 ? (
                 speakers.map((speaker) => (
                   <SpeakerCard
@@ -137,26 +149,34 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                   />
                 ))
               ) : (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="absolute inset-0 flex items-center justify-center">
                   {isInitializing ? (
                     <div className="flex flex-col items-center">
                       <Loader size="lg" color="primary" />
                       <span className="text-gray-600 mt-4">Waiting for speakers...</span>
                     </div>
-                  ) : 'No speakers yet'}
+                  ) : (
+                    "No speakers yet"
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Chat History - only shown when toggled */}
-          {showChat && (
-            <div className="col-span-5 h-full overflow-auto">
-              <ChatHistory messages={messages} />
-            </div>
-          )}
+          {/* Chat History */}
+          <div
+            className={`bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out ${
+              showChat 
+                ? "translate-x-0 opacity-100 visible scale-95" 
+                : "translate-x-full opacity-0 invisible"
+            }`}
+          >
+            {showChat && <ChatHistory messages={messages} />}
+          </div>
         </div>
       </main>
+
+
     </div>
   );
 }

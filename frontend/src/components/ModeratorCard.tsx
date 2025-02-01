@@ -11,9 +11,9 @@ const MODERATOR = {
 
 export default function ModeratorCard() {
   return (
-    <div className="bg-white rounded-xl shadow-md p-8 h-full">
+    <div className="h-full">
       <div className="flex items-center space-x-4 mb-8">
-        <div className="bg-purple-100 p-4 rounded-full">
+        <div className="bg-purple-100 p-3 rounded-full">
           {MODERATOR.avatar}
         </div>
         <div>
@@ -22,10 +22,10 @@ export default function ModeratorCard() {
         </div>
       </div>
       
-      <div className="border-t pt-6">
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h5 className="text-sm font-semibold text-gray-700 mb-3">Profile</h5>
-          <ul className="text-gray-600 text-sm space-y-3">
+      <div className="border-t pt-4 sm:pt-6">
+        <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+          <h5 className="text-sm sm:text-base font-semibold text-gray-700 mb-3">Profile</h5>
+          <ul className="text-gray-600 text-xs sm:text-sm space-y-2 sm:space-y-3">
             <li>• Background: {MODERATOR.background}</li>
             <li>• Attitude: {MODERATOR.attitude}</li>
             <li>• Expertise: {MODERATOR.expertise.join(", ")}</li>
@@ -35,9 +35,9 @@ export default function ModeratorCard() {
       
       {/* Streaming content section */}
       <div className="my-4">
-        <div className="bg-purple-50 rounded-lg p-4">
-          <h5 className="text-center text-sm font-semibold text-gray-700 mb-3">Debate Summary</h5>
-          <p className="text-gray-700 text-sm min-h-[3rem]">
+        <div className="bg-purple-50 rounded-lg p-3 sm:p-4">
+          <h5 className="text-center text-sm sm:text-base font-semibold text-gray-700 mb-2 sm:mb-3">Debate Summary</h5>
+          <p className="text-gray-700 text-xs sm:text-sm min-h-[3rem]">
             {/* Streaming content will be inserted here */}
           </p>
         </div>

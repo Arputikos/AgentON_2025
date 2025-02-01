@@ -39,7 +39,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+    <div className="h-[calc(100vh-3rem)] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
       {/* Connection Status Indicator */}
       <div className="fixed top-4 right-4">
         <div className={`w-3 h-3 rounded-full ${
@@ -69,7 +69,7 @@ export default function Home() {
             />
           </div>
           <label htmlFor="prompt" className="block text-md font-medium text-gray-700 mb-2 p-1">
-              🗝️Enter API key (Deepseek or OpenAI)
+              🗝️ Enter API key (Deepseek or OpenAI)
             </label>
             <input
               type="password"
@@ -81,7 +81,7 @@ export default function Home() {
               disabled={isLoading}
             />
             <label htmlFor="prompt" className="block text-md font-medium text-gray-700 mb-2 p-1">
-              🗝️Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but better results with!)
+              🗝️ Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but better results with!)
             </label>
             <input
               type="password"
@@ -94,7 +94,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold py-3 px-6 rounded-lg transition-opacity duration-200 flex items-center justify-center ${
+            className={`w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold py-3 mt-16 px-6 rounded-lg transition-opacity duration-200 flex items-center justify-center ${
               isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
             }`}
           >

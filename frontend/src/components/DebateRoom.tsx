@@ -43,7 +43,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   // Memoize speaker positions calculation
   const speakers = useMemo(() => {
     if (!participants.length) return [];
-    console.log('Calculating positions for speakersusedebatestre:', participants.length);
+    console.log('Calculating positions for speakers:', participants.length);
     return participants.map((speaker, index) => {
       const position = calculatePosition(index, participants.length);
       return {
@@ -62,8 +62,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   }, [participants, isInitializing, isComplete]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-
+    <div className="h-[calc(100vh-4rem)] bg-gray-100">
         {/* Connection Status Indicator */}
       <div className="fixed top-4 right-4 flex items-center gap-4">
         {/* Chat Toggle */}
@@ -99,7 +98,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
         </div>
       </header>
 
-      <main className="w-full mx-auto px-4 py-8 min-h-[calc(100vh-100px)]">
+      <main className="w-full mx-auto px-4 py-8 h-[calc(100%-6rem)]">
         <div className="grid grid-cols-12 gap-8 h-full">
           {/* Moderator Panel - Left Side */}
           <div className="col-span-2">

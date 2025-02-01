@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
+import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: "AgentON Agent",
@@ -14,10 +15,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="h-screen flex flex-col">
         <WebSocketProvider>
-          {children}
+          <main className="flex-1">
+            {children}
+          </main>
         </WebSocketProvider>
+        <Footer />
       </body>
     </html>
   );

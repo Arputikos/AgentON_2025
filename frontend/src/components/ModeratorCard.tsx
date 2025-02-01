@@ -36,6 +36,7 @@ export default function ModeratorCard() {
       {/* Streaming content section */}
       <div className="my-4">
         <div className="bg-purple-50 rounded-lg p-4">
+          <h5 className="text-center text-sm font-semibold text-gray-700 mb-3">Debate Summary</h5>
           <p className="text-gray-700 text-sm min-h-[3rem]">
             {/* Streaming content will be inserted here */}
           </p>

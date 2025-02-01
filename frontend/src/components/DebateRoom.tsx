@@ -10,6 +10,7 @@ import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useParticipantStream } from '@/hooks/useParticipantStream';
 import { Github } from 'lucide-react';
+import Loader from '@/components/Loader';
 
 function calculatePosition(index: number, total: number) {
     const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
@@ -139,8 +140,8 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                   {isInitializing ? (
                     <div className="flex flex-col items-center">
-                      <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                      <span className="text-gray-600 mt-2">Loading speakers...</span>
+                      <Loader size="lg" color="primary" />
+                      <span className="text-gray-600 mt-4">Waiting for speakers...</span>
                     </div>
                   ) : 'No speakers yet'}
                 </div>

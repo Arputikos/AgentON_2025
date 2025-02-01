@@ -1,5 +1,6 @@
 import ChatMessage from './ChatMessage';
 import { useEffect, useRef } from 'react';
+import Loader from './Loader';
 interface ChatHistoryProps {
   messages: Array<{
     id: string;
@@ -16,7 +17,6 @@ export default function ChatHistory({ messages }: ChatHistoryProps) {
 
   useEffect(() => {
     if (messagesEndRef.current) {
-      // Optionally add smooth behavior
       messagesEndRef.current.scrollTo({
         top: messagesEndRef.current.scrollHeight,
         behavior: 'smooth'
@@ -32,8 +32,8 @@ export default function ChatHistory({ messages }: ChatHistoryProps) {
       <div className="border-t pt-6">
         <div className="space-y-4 h-[450px] overflow-y-auto" ref={messagesEndRef}>
           {messages.length <= 0 ? (
-            <div className="flex justify-center items-center h-[81%]">
-              <div className="w-20 h-20 z-10 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+            <div className="flex flex-col items-center pt-6">
+              <Loader size="lg" color="primary" />
             </div>
           ) : ''}
           {messages.map((message) => (

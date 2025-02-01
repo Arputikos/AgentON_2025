@@ -199,26 +199,6 @@ async def websocket_endpoint(websocket: WebSocket):
             }
         })
 
-        # Send personas to client
-        for persona in debate_personas:
-            await websocket.send_json({
-                "type": "persona",
-                "data": persona.model_dump()
-            })
-            print(f"Sent persona: {persona.name}")
-
-        # Send completion message
-        await websocket.send_json({
-            "type": "setup_complete",
-            "status": "success",
-            "message": "All personas have been streamed"
-        })
-        print("Sent setup complete token")
-
-        ###
-        ### CLIENT HAS BEEN INITIALIZED CAN START THE DEBATE
-        ###
-
         # Insert moderator and opening personas
         moderator_persona = Persona(
             uuid=str(uuid.uuid4()),
@@ -263,14 +243,34 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=PromptCrafterOutput
         )
         
-        # Generate system prompts for each debatepersona
+        # Generate system prompts for each debate persona - after each persona is created stream the persona to the client
         for persona in debate_personas:
             persona_data = persona.print_persona_as_json()
             print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
+
+            await websocket.send_json({
+                "type": "persona",
+                "data": persona.model_dump()
+            })
+
+            print(f"Sent persona: {persona.name}")
             print(f"Persona system prompt: {persona.system_prompt}")
         
+
+        # Send completion message
+        await websocket.send_json({
+            "type": "setup_complete",
+            "status": "success",
+            "message": "All personas have been streamed"
+        })
+        print("Sent setup complete token")
+
+        ###
+        ### CLIENT HAS BEEN INITIALIZED CAN START THE DEBATE
+        ###
+
         persona_full_list: List[Persona] = personas_full_list_RPEA.personas
 
         # Generate opening statement

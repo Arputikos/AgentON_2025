@@ -36,7 +36,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   useEffect(() => {
     if (participants.length > prevParticipantsLength.current) {
       const newParticipant = participants[participants.length - 1];
-      toast(newParticipant.name, showSpeakerNotification(newParticipant.name, newParticipant.backgroundColor));
+      toast(newParticipant.name, showSpeakerNotification(newParticipant.name, newParticipant.borderColor));
     }
     prevParticipantsLength.current = participants.length;
   }, [participants]);
@@ -124,7 +124,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                     role={participant.role}
                     avatar={participant.avatar}
                     position={participant.position}
-                    backgroundColor={participant.backgroundColor} 
+                    borderColor={participant.borderColor} 
                   />
                 ))
               ) : (

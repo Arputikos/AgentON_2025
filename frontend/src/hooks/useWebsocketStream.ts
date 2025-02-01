@@ -9,12 +9,12 @@ interface Participant {
   name: string;
   role: string;
   avatar: string;
-  backgroundColor: string; // the color assigned to this participant
+  borderColor: string; // the color assigned to this participant
   position: { // calculate the position of the participant on the circle
     top: string;
     left: string;
     transform: string;
-  };
+  }
 }
 
 interface Message {
@@ -22,6 +22,7 @@ interface Message {
   content: string;
   sender: string;
   timestamp: string;
+  borderColor: string;
   // isComplete: boolean; // gdybyśmy streamowali z backendu
 }
 
@@ -59,24 +60,23 @@ export function useWebsocketStream(debateId: string | null) {
       case 'persona':
         const persona = data.data;
         setStreamState(prev => {
-          const newParticipants = [...prev.participants];
+          const existingParticipants = [...prev.participants];
           const newParticipant = {
             id: persona.uuid,
             name: persona.name,
             role: persona.title || 'Expert',
             avatar: persona.image_url,
-            backgroundColor: assignSpeakerColor(newParticipants.length),
-            position: calculatePosition(newParticipants.length, newParticipants.length + 1)
+            borderColor: assignSpeakerColor(existingParticipants.length),
+            position: calculatePosition(existingParticipants.length, existingParticipants.length + 1)
           };
-          
           // Recalculate positions for all participants
-          newParticipants.forEach((p, idx) => {
-            p.position = calculatePosition(idx, newParticipants.length + 1);
+          existingParticipants.forEach((p, idx) => {
+            p.position = calculatePosition(idx, existingParticipants.length + 1);
           });
           
           return {
             ...prev,
-            participants: [...newParticipants, newParticipant],
+            participants: [...existingParticipants, newParticipant],
             isInitializing: true
           };
         });
@@ -92,24 +92,29 @@ export function useWebsocketStream(debateId: string | null) {
         break;
 
       case 'message':
-        setStreamState(prev => ({
-          ...prev,
-          messages: [
-            ...prev.messages,
-            {
-              id: v7(),
-              content: data.data.content,
-              sender: data.data.name,
-              timestamp: new Date().toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                hour12: false 
-              }),
-              borderColor: prev.participants.find(p => p.name === data.data.name)?.backgroundColor || '#000', // default border color if not found
-              isComplete: true
-            }
-          ]
-        }));
+        setStreamState(prev => {
+          const matchingParticipant = prev.participants.find(p => 
+            p.name === data.data.name
+          );
+          
+          return {
+            ...prev,
+            messages: [
+              ...prev.messages,
+              {
+                id: v7(),
+                content: data.data.content,
+                sender: data.data.name,
+                timestamp: new Date().toLocaleTimeString([], { 
+                  hour: '2-digit', 
+                  minute: '2-digit', 
+                  hour12: false 
+                }),
+                borderColor: matchingParticipant?.borderColor || '#000',
+                isComplete: true
+              }]
+          };
+        });
         break;
 
       case 'final_message':

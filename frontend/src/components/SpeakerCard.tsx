@@ -9,10 +9,10 @@ interface SpeakerCardProps {
       left: string;
       transform: string;
     };
-    backgroundColor: string;
+    borderColor: string;
   }
 
-export default function SpeakerCard({ name, role, avatar, position, backgroundColor }: SpeakerCardProps) {
+export default function SpeakerCard({ name, role, avatar, position, borderColor }: SpeakerCardProps) {
   //console.log('SpeakerCard rendered:', { name, role, avatar, position });
   
   return (
@@ -24,11 +24,13 @@ export default function SpeakerCard({ name, role, avatar, position, backgroundCo
         transform: position.transform
       }}
     >
-      <div className="bg-white rounded-xl shadow-lg p-4 w-full flex flex-col items-center" style={{ backgroundColor: backgroundColor }}>
+      <div 
+        className="bg-white rounded-xl shadow-lg p-4 w-full flex flex-col items-center" 
+        style={{ borderWidth: '2px', borderStyle: 'solid', borderColor: borderColor || 'rgba(0,0,0,0.2)' }}
+      >
         <div className="relative w-20 h-20 mb-3">
           <img
             src={avatar}
-            alt={name}
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="rounded-full object-cover border-4 border-white shadow-md"
           />

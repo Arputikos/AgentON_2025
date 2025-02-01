@@ -15,13 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="h-screen flex flex-col">
+      <body>
         <WebSocketProvider>
-          <main className="flex-1">
+          <main>
             {children}
           </main>
         </WebSocketProvider>
-        <Footer />
       </body>
     </html>
   );

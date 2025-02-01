@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Github } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import Link from 'next/link';
 import { startDebate } from '@/lib/actions';
@@ -39,13 +39,23 @@ export default function Home() {
   };
 
   return (
-    <div className="h-[calc(100vh-3rem)] bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-      {/* Connection Status Indicator */}
-      <div className="fixed top-4 right-4">
-        <div className={`w-3 h-3 rounded-full ${
-          isConnected ? 'bg-green-500' : 'bg-red-500'
-        }`} />
-      </div>
+    <div className="h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+      
+      <header className="fixed top-0 left-0 right-0 z-50 p-4 flex justify-end items-center">
+        <div className="flex items-center gap-4">
+          <a 
+            href="https://github.com/Arputikos/AgentON_2025" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:text-gray-800 transition-colors"
+          >
+            <Github className="w-7 h-7" />
+          </a>
+          <div className={`w-3 h-3 rounded-full ${
+            isConnected ? 'bg-green-500' : 'bg-red-500'
+          }`} />
+        </div>
+      </header>
       
       <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-xl">
         <div className="flex items-center justify-center mb-4">

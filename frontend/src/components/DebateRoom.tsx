@@ -9,6 +9,7 @@ import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useParticipantStream } from '@/hooks/useParticipantStream';
+import { Github } from 'lucide-react';
 
 function calculatePosition(index: number, total: number) {
     const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
@@ -62,43 +63,53 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   }, [participants, isInitializing, isComplete]);
 
   return (
-    <div className="h-[calc(100vh-4rem)] bg-gray-100">
-        {/* Connection Status Indicator */}
-      <div className="fixed top-4 right-4 flex items-center gap-4">
-        {/* Chat Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showChat}
-            onChange={(e) => setShowChat(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          <span className="text-sm font-medium text-gray-900">Show Chat</span>
-        </label>
-        
-        {/* Connection Status Dot */}
-        <div className={`w-3 h-3 rounded-full ${
-          isConnected ? 'bg-green-500' : 'bg-red-500'
-        }`} />
-      </div>
-      
+    <div className="h-screen w-full bg-gray-100 overflow-hidden">
       {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center">
-            <Link href="/" className="mr-4">
-              <ArrowLeft className="w-6 h-6 text-gray-600 hover:text-gray-900" />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
-              <p className="text-gray-600 mt-1">Topic: {topic}</p> 
+      <header className="bg-white shadow-md h-24">
+        <div className="h-full w-full px-6 flex items-center justify-between">
+
+            {/* Debate information container */}
+            <div className="flex items-center">
+              <Link href="/" className="mr-6">
+                <ArrowLeft className="w-6 h-6 text-gray-600 hover:text-gray-900 transition-colors" />
+              </Link>
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
+                <p className="text-gray-600 mt-1 text-sm">Topic: {topic}</p>
+              </div>
             </div>
-          </div>
+
+            {/* Additional header content */}
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showChat}
+                  onChange={(e) => setShowChat(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <span className="text-sm font-medium text-gray-900">Show Chat</span>
+              </label>
+              <a 
+                href="https://github.com/Arputikos/AgentON_2025" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-gray-800 transition-colors"
+              >
+                <Github className="w-7 h-7" />
+              </a>
+              {/* Connection Status Dot */}
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${
+                  isConnected ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+              </div>
+            </div>
         </div>
       </header>
 
-      <main className="w-full mx-auto px-4 py-8 h-[calc(100%-6rem)]">
+      <main className="h-[calc(100%-8rem)] w-full p-4 px-12">
         <div className="grid grid-cols-12 gap-8 h-full">
           {/* Moderator Panel - Left Side */}
           <div className="col-span-2">
@@ -139,7 +150,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
 
           {/* Chat History - only shown when toggled */}
           {showChat && (
-            <div className="col-span-5">
+            <div className="col-span-5 h-full overflow-auto">
               <ChatHistory messages={messages} />
             </div>
           )}

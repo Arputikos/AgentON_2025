@@ -1,29 +1,16 @@
 'use client';
 
-import { useEffect, useState, useMemo, memo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { useSearchParams } from 'next/navigation';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useParticipantStream } from '@/hooks/useParticipantStream';
 import { Github } from 'lucide-react';
 import Loader from '@/components/Loader';
-
-function calculatePosition(index: number, total: number) {
-    const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
-    const radius = 37.5;
-    const top = `${50 + radius * Math.sin(angle)}%`;
-    const left = `${50 + radius * Math.cos(angle)}%`;
-    
-    return {
-      top,
-      left,
-      transform: `translate(-50%, -50%)`
-    };
-}
+import { calculatePosition } from '@/lib/utils';
 
 interface DebateRoomProps {
   debateId: string | null;
@@ -34,8 +21,8 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   const { isConnected } = useWebSocket();
   
   const { 
-    participants, 
-    isInitializing, 
+    participants,
+    isInitializing,
     isComplete, 
     error: participantError,
     topic,

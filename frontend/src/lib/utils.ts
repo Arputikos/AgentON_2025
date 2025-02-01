@@ -26,3 +26,16 @@ export function encryptData(text: string): string {
   encrypted += cipher.final('base64');
   return encrypted;
 }
+
+export function calculatePosition(index: number, total: number) {
+  const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
+  const radius = 37.5;
+  const top = `${50 + radius * Math.sin(angle)}%`;
+  const left = `${50 + radius * Math.cos(angle)}%`;
+  
+  return {
+    top,
+    left,
+    transform: `translate(-50%, -50%)`
+  };
+}

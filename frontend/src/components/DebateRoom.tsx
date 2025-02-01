@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
-import { useParticipantStream } from '@/hooks/useParticipantStream';
+import { useWebsocketStream } from '@/hooks/useWebsocketStream';
 import { Github } from 'lucide-react';
 import Loader from '@/components/Loader';
-import { calculatePosition } from '@/lib/utils';
+import { showSpeakerNotification } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface DebateRoomProps {
   debateId: string | null;
@@ -20,35 +21,25 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   const [showChat, setShowChat] = useState(true);
   const { isConnected } = useWebSocket();
   
-  const { 
-    participants,
+  const {
     isInitializing,
-    isComplete, 
+    debateFinished,
+    participants,
     error: participantError,
     topic,
     messages
-  } = useParticipantStream(debateId);
+  } = useWebsocketStream(debateId);
 
-  // Memoize speaker positions calculation
-  const speakers = useMemo(() => {
-    if (!participants.length) return [];
-    console.log('Calculating positions for speakers:', participants.length);
-    return participants.map((speaker, index) => {
-      const position = calculatePosition(index, participants.length);
-      return {
-        ...speaker,
-        position
-      };
-    });
-  }, [participants]); // Only recalculate when participants array changes
+  const prevParticipantsLength = useRef(0);
 
-
-
-  // Add debug logging
+  // Show notification when new participant joins - needs to be triggered from debate room 
   useEffect(() => {
-    console.log('Current participants:', participants);
-    console.log('Initialization status:', { isInitializing, isComplete });
-  }, [participants, isInitializing, isComplete]);
+    if (participants.length > prevParticipantsLength.current) {
+      const newParticipant = participants[participants.length - 1];
+      toast(newParticipant.name, showSpeakerNotification(newParticipant.name, newParticipant.backgroundColor));
+    }
+    prevParticipantsLength.current = participants.length;
+  }, [participants]);
 
   return (
     <div className="h-screen w-full bg-gray-100 flex flex-col">
@@ -125,14 +116,15 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                 <div className="w-3/4 h-3/4 bg-gray-100 rounded-full border-8 border-gray-200 shadow-inner" />
               </div>
 
-              {speakers.length > 0 ? (
-                speakers.map((speaker) => (
+              {participants.length > 0 ? (
+                participants.map((participant, index) => (
                   <SpeakerCard
-                    key={speaker.id}
-                    name={speaker.name}
-                    role={speaker.role}
-                    avatar={speaker.avatar}
-                    position={speaker.position!}
+                    key={participant.id}
+                    name={participant.name}
+                    role={participant.role}
+                    avatar={participant.avatar}
+                    position={participant.position}
+                    backgroundColor={participant.backgroundColor} 
                   />
                 ))
               ) : (

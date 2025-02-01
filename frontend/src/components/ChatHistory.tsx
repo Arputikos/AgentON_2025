@@ -7,7 +7,7 @@ interface ChatHistoryProps {
     content: string;
     sender: string;
     timestamp?: string;
-    isComplete: boolean;
+    // isComplete: boolean; // gdybyśmy streamowali z backendu
   }>;
 }
 
@@ -42,11 +42,11 @@ export default function ChatHistory({ messages }: ChatHistoryProps) {
               content={message.content}
               sender={message.sender}
               timestamp={message.timestamp}
-              isStreaming={!message.isComplete}
+              // isStreaming={!message.isComplete} // gdybyśmy streamowali z backendu
             />
           ))}
         </div>
       </div>
     </div>
   );
-} 
+}

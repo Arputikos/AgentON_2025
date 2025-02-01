@@ -1,15 +1,22 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { v7 } from 'uuid'
+import { calculatePosition, assignSpeakerColor, showSpeakerNotification } from '@/lib/utils';
+import toast from 'react-hot-toast';
+
+
+// INTERFACES RECIEVED FROM WEBSOCKET
 interface Participant {
   id: string;
   name: string;
   role: string;
   avatar: string;
-  expertise?: string[];
-  personality?: string;
-  attitude?: string;
-  debate_style?: string;
+  backgroundColor: string; // the color assigned to this participant
+  position: { // calculate the position of the participant on the circle
+    top: string;
+    left: string;
+    transform: string;
+  };
 }
 
 interface Message {
@@ -17,71 +24,71 @@ interface Message {
   content: string;
   sender: string;
   timestamp: string;
-  isComplete: boolean;
+  // isComplete: boolean; // gdybyśmy streamowali z backendu
 }
 
-interface ParticipantStreamState {
+interface WebsocketStreamState {
   isInitializing: boolean;
+  debateFinished: boolean;
   participants: Participant[];
   error: string | null;
   topic: string | null;
   messages: Message[];
 }
 
-export function useParticipantStream(debateId: string | null) {
+export function useWebsocketStream(debateId: string | null) {
   const { socket, isConnected } = useWebSocket();
-  const [streamState, setStreamState] = useState<ParticipantStreamState>({
+  const [streamState, setStreamState] = useState<WebsocketStreamState>({
     isInitializing: true,
+    debateFinished: false,
     participants: [],
     error: null,
     topic: null,
     messages: []
   });
-  const setupComplete = useRef(false);
 
-  const handleParticipantMessage = useCallback((data: any) => {
-    console.log('🎭 Processing participant message:', data);
-
+  const handleWebSocketMessage = useCallback((data: any) => {
     switch (data.type) {
+
       case 'debate_topic':
+        setStreamState(prev => ({
+          ...prev,
+          topic: data.data.topic,
+          isInitializing: true
+        }));
+        break;
+
+      case 'persona':
+        const persona = data.data;
         setStreamState(prev => {
-          console.log('📝 Setting topic:', data.data.topic);
+          const newParticipants = [...prev.participants];
+          const newParticipant = {
+            id: persona.uuid,
+            name: persona.name,
+            role: persona.title || 'Expert',
+            avatar: persona.image_url,
+            backgroundColor: assignSpeakerColor(newParticipants.length),
+            position: calculatePosition(newParticipants.length, newParticipants.length + 1)
+          };
+          
+          // Recalculate positions for all participants
+          newParticipants.forEach((p, idx) => {
+            p.position = calculatePosition(idx, newParticipants.length + 1);
+          });
+          
           return {
             ...prev,
-            topic: data.data.topic,
+            participants: [...newParticipants, newParticipant],
             isInitializing: true
           };
         });
         break;
 
-      case 'persona':
-        const persona = data.data;
-        const newParticipant = {
-          id: persona.uuid,
-          name: persona.name,
-          role: persona.title || 'Expert',
-          avatar: persona.image_url,
-          expertise: persona.expertise || [],
-          personality: persona.personality || '',
-          attitude: persona.attitude || '',
-          debate_style: persona.debate_style || ''
-        };
-
-        setStreamState(prev => ({
-          ...prev,
-          participants: [...prev.participants, newParticipant],
-          isInitializing: true
-        }));
-        console.log('👤 Added new participant:', newParticipant.name);
-        break;
-
       case 'setup_complete':
-        setupComplete.current = true; // Mark setup as complete
         setStreamState(prev => {
-          console.log('✅ Setup complete, current topic:', prev.topic);
           return {
             ...prev,
-            isInitializing: false
+            isInitializing: false // mark setup as complete
           };
         });
         break;
@@ -95,17 +102,21 @@ export function useParticipantStream(debateId: string | null) {
               id: v7(),
               content: data.data.content,
               sender: data.data.name,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+              timestamp: new Date().toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+              }),
               isComplete: true
             }
           ]
         }));
-        console.log('📝 Received message:', data.data.content);
         break;
 
       case 'final_message':
           setStreamState(prev => ({
             ...prev,
+            debateFinished: true,
             messages: [
               ...prev.messages,
               {
@@ -117,7 +128,6 @@ export function useParticipantStream(debateId: string | null) {
               }
             ]
           }));
-          console.log('📝 Received message:', data.message);
           break;
 
       case 'error':
@@ -132,18 +142,21 @@ export function useParticipantStream(debateId: string | null) {
   }, []);
 
   useEffect(() => {
-    if (!socket || !debateId || !isConnected || setupComplete.current) return;
+    if (!socket || !debateId || !isConnected) return;
 
-    console.log('🔌 Connecting with debate ID:', debateId);
-    
-    socket.send(JSON.stringify({
-      debate_id: debateId.replace(/"/g, '')
-    }));
+    try {
+      console.log('🔌 Connecting with debate ID:', debateId);
+      socket.send(JSON.stringify({
+        debate_id: debateId.replace(/"/g, '')
+      }));
+    } catch (error) {
+      console.error('💥 Error sending debate ID:', error);
+    }
 
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        handleParticipantMessage(data);
+        handleWebSocketMessage(data);
       } catch (error) {
         console.error('💥 Error processing participant message:', error);
         setStreamState(prev => ({
@@ -159,15 +172,10 @@ export function useParticipantStream(debateId: string | null) {
     console.log('🔌 Initialized participant stream for debate:', debateId);
 
     return () => {
-      if (!setupComplete.current) { // Only cleanup if setup isn't complete
-        socket.removeEventListener('message', handleMessage);
-        console.log('🔌 Cleaned up participant stream');
-      }
+      socket.removeEventListener('message', handleMessage);
+      console.log('🔌 Cleaned up websocket connection');
     };
-  }, [socket, debateId, isConnected, handleParticipantMessage]);
+  }, [socket, debateId, isConnected]);
 
-  return {
-    ...streamState,
-    isComplete: setupComplete.current && streamState.topic !== null
-  };
+  return streamState;
 } 

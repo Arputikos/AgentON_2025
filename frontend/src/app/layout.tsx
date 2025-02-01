@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
-import Footer from '@/components/Footer';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: "AgentON Agent",
@@ -19,6 +19,7 @@ export default function RootLayout({
         <WebSocketProvider>
           <main>
             {children}
+            <Toaster />
           </main>
         </WebSocketProvider>
       </body>

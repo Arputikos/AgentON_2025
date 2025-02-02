@@ -17,7 +17,7 @@ export default function SpeakerCard({ name, role, avatar, position, borderColor 
   
   return (
     <div
-      className="absolute w-32 -translate-x-1/2 -translate-y-1/2 animate-fade-in flex flex-col items-center"
+      className="absolute w-36 -translate-x-1/2 -translate-y-1/2 animate-fade-in flex flex-col items-center"
       style={{
         top: position.top,
         left: position.left,
@@ -36,8 +36,8 @@ export default function SpeakerCard({ name, role, avatar, position, borderColor 
           />
         </div>
         <div className="text-center">
-          <h3 className="font-semibold text-gray-900 text-sm mb-1">{name}</h3>
-          <p className="text-gray-600 text-xs">{role}</p>
+          <h3 className="font-semibold text-gray-900 text-lg mb-1">{name}</h3>
+          <p className="text-gray-600 text-md">{role}</p>
         </div>
       </div>
     </div>

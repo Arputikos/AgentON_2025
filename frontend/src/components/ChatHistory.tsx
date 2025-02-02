@@ -74,7 +74,7 @@ export default function ChatHistory({ messages, debateFinished }: ChatHistoryPro
   return (
     <div className="h-full">
       <div className="flex items-center space-x-4 mb-8">
-        <h3 className="font-semibold text-xl">Debate History</h3>
+        <h3 className="font-semibold text-2xl">Debate History</h3>
       </div>
       <div className="border-t py-6">
         <div className="space-y-4 h-[calc(100%-8rem)] overflow-y-auto">

@@ -57,8 +57,8 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
   return (
     <div className="h-screen w-full bg-gray-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-md h-24">
-        <div className="h-full w-full px-6 flex items-center justify-between">
+      <header className="bg-white shadow-md h-24 w-full">
+        <div className="h-full px-22 max-w-[2400px] mx-auto flex items-center justify-between">
 
             {/* Debate information container */}
             <div className="flex items-center">
@@ -67,7 +67,7 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
               </Link>
               <div className="flex flex-col">
                 <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
-                <p className="text-gray-600 mt-1 text-sm">Topic: {displayTopic}</p>
+                <p className="text-gray-600 mt-1 text-lg">Topic: {displayTopic}</p>
               </div>
             </div>
 
@@ -81,7 +81,7 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
                   className="sr-only peer"
                 />
                 <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                <span className="text-sm font-medium text-gray-900">Show Chat</span>
+                <span className="text-md font-medium text-gray-900">Show Chat</span>
               </label>
               <a 
                 href="https://github.com/Arputikos/AgentON_2025" 
@@ -89,11 +89,11 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 hover:text-gray-800 transition-colors"
               >
-                <Github className="w-7 h-7" />
+                <Github className="w-8 h-8" />
               </a>
               {/* Connection Status Dot */}
               <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${
+                <div className={`w-5 h-5 rounded-full ${
                   isConnected ? 'bg-green-500' : 'bg-red-500'
                 }`} />
               </div>
@@ -124,7 +124,7 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
               transform: showChat ? "scale(0.95)" : "scale(1)",
             }}
           >
-            <div className="relative w-full aspect-square max-w-[800px]">
+            <div className="relative w-full aspect-square max-w-[1000px]">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-3/4 h-3/4 bg-gray-100 rounded-full border-8 border-gray-200 shadow-inner" />
               </div>

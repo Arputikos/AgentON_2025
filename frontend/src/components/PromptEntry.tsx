@@ -59,8 +59,8 @@ export default function Home() {
       
       <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-3xl">
         <div className="flex items-center justify-center mb-8">
-          <Sparkles className="w-14 h-14 text-purple-500 mr-3" />
-          <h1 className="text-6xl font-bold text-gray-800">Debate Arena</h1>
+          <Sparkles className="w-12 h-12 text-purple-500 mr-3" />
+          <h1 className="text-5xl font-bold text-gray-700">Debate Arena</h1>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -72,7 +72,7 @@ export default function Home() {
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              className="w-full px-5 py-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 min-h-[160px] resize-none text-lg"
+              className="w-full px-5 py-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 min-h-[160px] resize-none text-xl"
               placeholder="e.g., Should artificial intelligence be regulated?"
               required
               disabled={isLoading}
@@ -104,7 +104,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold py-4 mt-16 px-6 rounded-lg transition-opacity duration-200 flex items-center justify-center text-2xl ${
+            className={`w-full bg-gradient-to-r from-purple-400 to-indigo-400 text-white font-semibold py-5 mt-16 px-6 rounded-lg transition-opacity duration-200 flex items-center justify-center text-2xl ${
               isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
             }`}
           >

@@ -31,7 +31,6 @@ interface WebsocketStreamState {
   participants: Participant[];
   error: string | null;
   messages: Message[];
-  isStreaming: boolean;
 }
 
 export function useWebsocketStream(debateId: string | null) {
@@ -42,7 +41,6 @@ export function useWebsocketStream(debateId: string | null) {
     participants: [],
     error: null,
     messages: [],
-    isStreaming: false
   });
 
   const handleWebSocketMessage = useCallback((data: any) => {
@@ -119,7 +117,6 @@ export function useWebsocketStream(debateId: string | null) {
               sender: "FINAL DEBATE RESULT",
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
               borderColor: '#000',
-              isComplete: true
             }
           ]
         }));

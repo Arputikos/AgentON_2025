@@ -11,10 +11,10 @@ interface ChatHistoryProps {
     timestamp?: string;
     borderColor?: string;
   }>;
-  isStreaming: boolean; // is the chat currently being streamed?
+  debateFinished: boolean;
 }
 
-export default function ChatHistory({ messages }: ChatHistoryProps) {
+export default function ChatHistory({ messages, debateFinished }: ChatHistoryProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [streamingMessages, setStreamingMessages] = useState<{[key: string]: string}>({});
   const [displayedMessages, setDisplayedMessages] = useState<typeof messages>([]);
@@ -95,7 +95,7 @@ export default function ChatHistory({ messages }: ChatHistoryProps) {
               timestamp={messageQueue[0].timestamp}
               borderColor={messageQueue[0].borderColor}
             />
-          ) : !isStreaming && (
+          ) : !isStreaming && !debateFinished && (
             <div className="flex justify-center py-4">
               <Loader size="lg" color="primary" />
             </div>

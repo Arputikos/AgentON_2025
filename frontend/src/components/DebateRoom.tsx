@@ -16,10 +16,9 @@ import { useSearchParams } from 'next/navigation';
 
 interface DebateRoomProps {
   debateId: string | null;
-  topic: string | null;
 }
 
-export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoomProps) {
+export default function DebateRoom({ debateId }: DebateRoomProps) {
   const searchParams = useSearchParams();
   const [displayTopic, setDisplayTopic] = useState<string>('Loading...');
   const [showChat, setShowChat] = useState(true);
@@ -40,10 +39,10 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
     const topicFromUrl = searchParams.get('topic');
     if (topicFromUrl) {
       setDisplayTopic(decodeURIComponent(topicFromUrl));
-    } else if (initialTopic) {
-      setDisplayTopic(initialTopic);
     }
-  }, [searchParams, initialTopic]);
+  }, [searchParams]);
+
+
 
   // Show notification when new participant joins - needs to be triggered from debate room 
   useEffect(() => {

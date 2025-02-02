@@ -80,3 +80,27 @@ export function showSpeakerNotification(name: string, backgroundColor: string) {
     }
   };
 }
+
+export function createMessageStream(
+  message: string,
+  onWordUpdate: (currentText: string) => void,
+  speed: number = 50 // milliseconds per word
+): Promise<void> {
+  return new Promise((resolve) => {
+    const words = message.split(' ');
+    let currentIndex = 0;
+    let currentText = '';
+
+    const streamInterval = setInterval(() => {
+      if (currentIndex >= words.length) {
+        clearInterval(streamInterval);
+        resolve();
+        return;
+      }
+
+      currentText += (currentIndex > 0 ? ' ' : '') + words[currentIndex];
+      onWordUpdate(currentText);
+      currentIndex++;
+    }, speed);
+  });
+}

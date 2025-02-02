@@ -30,7 +30,8 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
     debateFinished,
     participants,
     error: participantError,
-    messages
+    messages,
+    isStreaming
   } = useWebsocketStream(debateId);
 
   const prevParticipantsLength = useRef(0);
@@ -161,7 +162,12 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
                 : "translate-x-full opacity-0 invisible"
             }`}
           >
-            {showChat && <ChatHistory messages={messages} />}
+            {showChat && (
+              <>
+                <ChatHistory messages={messages} isStreaming={isStreaming} />
+                {isStreaming && <Loader size="sm" color="primary" />}
+              </>
+            )}
           </div>
         </div>
       </main>

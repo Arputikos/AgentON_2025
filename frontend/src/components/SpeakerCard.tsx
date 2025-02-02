@@ -26,7 +26,7 @@ export default function SpeakerCard({ name, role, avatar, position, borderColor 
     >
       <div 
         className="bg-white rounded-xl shadow-lg p-4 w-full flex flex-col items-center" 
-        style={{ borderWidth: '2px', borderStyle: 'solid', borderColor: borderColor || 'rgba(0,0,0,0.2)' }}
+        style={{ borderWidth: '3px', borderStyle: 'solid', borderColor: borderColor || 'rgba(0,0,0,0.2)' }}
       >
         <div className="relative w-20 h-20 mb-3">
           <img

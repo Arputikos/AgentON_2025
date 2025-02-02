@@ -23,7 +23,6 @@ interface Message {
   sender: string;
   timestamp: string;
   borderColor: string;
-  // isComplete: boolean; // gdybyśmy streamowali z backendu
 }
 
 interface WebsocketStreamState {
@@ -32,6 +31,7 @@ interface WebsocketStreamState {
   participants: Participant[];
   error: string | null;
   messages: Message[];
+  isStreaming: boolean;
 }
 
 export function useWebsocketStream(debateId: string | null) {
@@ -42,6 +42,7 @@ export function useWebsocketStream(debateId: string | null) {
     participants: [],
     error: null,
     messages: [],
+    isStreaming: false
   });
 
   const handleWebSocketMessage = useCallback((data: any) => {
@@ -101,7 +102,6 @@ export function useWebsocketStream(debateId: string | null) {
                   hour12: false 
                 }),
                 borderColor: matchingParticipant?.borderColor || '#000',
-                isComplete: true
               }]
           };
         });

@@ -5,7 +5,6 @@ interface ChatMessageProps {
   sender: string;
   timestamp?: string;
   borderColor?: string;
-  // isStreaming?: boolean; // gdybyśmy streamowali z backendu
 }
 
 export default function ChatMessage({ content, sender, timestamp, borderColor }: ChatMessageProps) {

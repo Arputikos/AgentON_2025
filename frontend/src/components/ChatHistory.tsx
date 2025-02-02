@@ -12,9 +12,10 @@ interface ChatHistoryProps {
     borderColor?: string;
   }>;
   debateFinished: boolean;
+  isVisible: boolean;
 }
 
-export default function ChatHistory({ messages, debateFinished }: ChatHistoryProps) {
+export default function ChatHistory({ messages, debateFinished, isVisible }: ChatHistoryProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [streamingMessages, setStreamingMessages] = useState<{[key: string]: string}>({});
   const [displayedMessages, setDisplayedMessages] = useState<typeof messages>([]);
@@ -49,7 +50,7 @@ export default function ChatHistory({ messages, debateFinished }: ChatHistoryPro
               [currentMessage.id]: currentText
             });
           },
-          50
+          50 // 50ms delay
         );
 
         // After streaming completes, move message from queue to displayed

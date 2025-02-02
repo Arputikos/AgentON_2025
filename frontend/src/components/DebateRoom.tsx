@@ -161,7 +161,7 @@ export default function DebateRoom({ debateId, topic: initialTopic }: DebateRoom
                 : "translate-x-full opacity-0 invisible"
             }`}
           >
-            {showChat && <ChatHistory messages={messages} debateFinished={debateFinished} />}
+            <ChatHistory messages={messages} debateFinished={debateFinished} isVisible={showChat} />
           </div>
         </div>
       </main>

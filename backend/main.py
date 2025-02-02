@@ -188,35 +188,7 @@ async def websocket_endpoint(websocket: WebSocket):
         debate_personas = personas_full_list_RPEA.personas.copy()
 
         ###
-        ### SEND THE TOPIC OF THE DEBATE AND THE PARTICIPANTS TO THE CLIENT 
-        ###
-
-        # Send debate topic to client
-        await websocket.send_json({
-            "type": "debate_topic",
-            "data": {
-                "topic": extrapolated_prompt
-            }
-        })
-
-        # Send personas to client
-        for persona in debate_personas:
-            await websocket.send_json({
-                "type": "persona",
-                "data": persona.model_dump()
-            })
-            print(f"Sent persona: {persona.name}")
-
-        # Send completion message
-        await websocket.send_json({
-            "type": "setup_complete",
-            "status": "success",
-            "message": "All personas have been streamed"
-        })
-        print("Sent setup complete token")
-
-        ###
-        ### CLIENT HAS BEEN INITIALIZED CAN START THE DEBATE
+        ### SEND THE PARTICIPANTS TO THE CLIENT 
         ###
 
         # Insert moderator and opening personas
@@ -252,8 +224,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Add coordinator and commentator to the full list
         personas_full_list_RPEA.personas.extend(CONST_PERSONAS) 
-
-        print("Personas completed")
         
         # SETUP PROMPTÓW DLA AGENTÓW 
         # Create the Prompt Crafter Agent
@@ -263,14 +233,34 @@ async def websocket_endpoint(websocket: WebSocket):
             result_type=PromptCrafterOutput
         )
         
-        # Generate system prompts for each debatepersona
+        # Generate system prompts for each debate persona - after each persona is created stream the persona to the client
         for persona in debate_personas:
             persona_data = persona.print_persona_as_json()
             print(f"Crafting persona: {persona.name}")
             prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
             persona.system_prompt = prompt_result.data.system_prompt
+
+            await websocket.send_json({
+                "type": "persona",
+                "data": persona.model_dump()
+            })
+
+            print(f"Sent persona: {persona.name}")
             print(f"Persona system prompt: {persona.system_prompt}")
         
+
+        # Send completion message
+        await websocket.send_json({
+            "type": "setup_complete",
+            "status": "success",
+            "message": "All personas have been streamed"
+        })
+        print("Sent setup complete token")
+
+        ###
+        ### CLIENT HAS BEEN INITIALIZED CAN START THE DEBATE
+        ###
+
         persona_full_list: List[Persona] = personas_full_list_RPEA.personas
 
         # Generate opening statement

@@ -69,7 +69,7 @@ export default function ChatHistory({ messages, debateFinished, isVisible }: Cha
 
   // Add scroll to bottom effect
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    //messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayedMessages, streamingMessages]);
 
   return (

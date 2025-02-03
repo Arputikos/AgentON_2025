@@ -45,7 +45,9 @@ node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
 
 Będą to klucze używane do szyfrowania kluczy API przesyłanych z frontendu na backend.
 
-3. Uruchom backend:
+3. Plik `backend/.env` skopiuj do pliku `frontend/.env.local`.
+
+4. Uruchom backend:
 ```bash
 cd backend
 python -m venv .venv
@@ -53,7 +55,7 @@ source .venv/bin/activate  # dla Linux/MacOS
 # lub
 .venv\Scripts\activate  # dla Windows
 pip install -r requirements.txt
-uvicorn main:app --reload
+uvicorn main:app
 ```
 
 4. W nowym terminalu uruchom frontend:

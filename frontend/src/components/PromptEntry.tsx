@@ -79,7 +79,7 @@ export default function Home() {
             />
           </div>
           <label htmlFor="prompt" className="block text-xl font-medium text-gray-700 mb-3 p-1">
-              🗝️ Enter API key (Deepseek or OpenAI)
+              🗝️ Enter API key (Deepseek, OpenAI or Anthropic)
             </label>
             <input
               type="password"

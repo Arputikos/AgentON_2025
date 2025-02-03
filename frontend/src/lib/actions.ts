@@ -6,7 +6,7 @@ export async function startDebate(prompt: string, aiApiKey: string, exaApiKey: s
     const aiApiKeyEncrypted = encryptData(aiApiKey);
     const exaApiKeyEncrypted = encryptData(exaApiKey);
 
-    const response = await fetch('http://localhost:8000/enter-debate', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL_HTTP}/enter-debate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

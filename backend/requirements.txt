@@ -3,7 +3,6 @@ pytest>=8.0.0
 black>=24.2.0
 isort>=5.13.2
 pre-commit>=3.6.0 
-supabase>=2.11.0
 python-dotenv>=1.0.0
 psycopg2-binary==2.9.10
 fastapi>=0.115.7
@@ -22,3 +21,8 @@ aiohttp>=3.8.6
 openai==1.60.1
 uvicorn==0.25.0
 pillow==11.1.0
+lxml_html_clean==0.4.1
+slowapi==0.1.9
+limits==4.0.1
+deprecated==1.2.18
+pycryptodome==3.21.0

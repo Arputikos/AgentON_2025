@@ -60,6 +60,18 @@ class Persona(BaseModel):
             return f"https://api.dicebear.com/7.x/avataaars/svg?seed={encoded_name}"
         except Exception:
             return f"https://ui-avatars.com/api/?background=random&name={name.replace(' ', '+')}"
+    
+    def print_persona_as_json(self):
+        return {
+            "name": self.name,
+            "title": self.title,
+            "description": self.description,
+            "personality": self.personality,
+            "expertise": self.expertise,
+            "attitude": self.attitude,
+            "background": self.background,
+            "debate_style": self.debate_style
+        }
 
     @property
     def system_prompt(self) -> str:
@@ -145,6 +157,8 @@ class DebateConfig(BaseModel):
 # prompt od użytkownika
 class PromptRequest(BaseModel):
     prompt: str
+    ai_api_key: str
+    exa_api_key: Optional[str]
 
 # Statements of the participants
 class Statement(BaseModel):
@@ -171,6 +185,7 @@ class DebateState(TypedDict):
     """
     State of the debate, including the current speaker, round number, conversation history, and whether the debate is finished.
     """
+    debate_id: str
     topic: str
     participants: List[Persona]
     current_speaker_uuid: str  # Current uuid of the speaker of the debate
@@ -181,14 +196,41 @@ class DebateState(TypedDict):
     participants_queue: List[str]  # Queue of participants to speak
     extrapolated_prompt: Optional[ExtrapolatedPrompt] 
 
+class DebateStateHelper:
+    """
+    Helper class for DebateState.
+    """
+    @staticmethod
+    def get_topic(state: DebateState) -> str:
+        return state["topic"]
+    
+    @staticmethod
+    def get_content(state: DebateState) -> str:
+        return "\n".join([statement.content for statement in state["conversation_history"]])
+    
+    @staticmethod
+    def print_conversation_history(state: DebateState) -> str:
+        return "\n".join([f"{statement.timestamp} - {statement.persona_uuid}: {statement.content}" for statement in state["conversation_history"]])
+    
+    @staticmethod
+    def get_participants(state: DebateState) -> str:
+        return "\n".join([f"{participant.name}" for participant in state["participants"]])
+
+    @staticmethod
+    def get_total_content_of_the_debate(state: DebateState) -> str:
+        topic: str = DebateStateHelper.get_topic(state)
+        participants = DebateStateHelper.get_participants(state)
+        content = DebateStateHelper.get_content(state)
+        return f"Topic: {topic}\nParticipants: {participants}\nContent: {content}"
+    
 # Tools
 class SearchQuery(BaseModel):
-    queries: list[str] = Field(description="Search query")
-    language: str | None = Field(description="Language of the search query")
-    query_id: int = Field(description="Unique identifier for the search query")
+    queries: list[str] = Field(description="Search query")    
+    query_id: str = Field(description="Unique identifier for the search query")
+    exa_api_key: str
 
 class SearchResult(BaseModel):
-    query_id: int = Field(description="Unique identifier for the search query")
+    query_id: str = Field(description="Unique identifier for the search query")
     urls: list[str] = Field(description="List of relevant URLs found")
 
 class WebContent(BaseModel):

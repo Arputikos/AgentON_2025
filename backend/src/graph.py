@@ -1,32 +1,44 @@
 import random
 
 from io import BytesIO
-import uuid
 from PIL import Image
 from uuid import uuid4
 from datetime import datetime
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 
-from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai import Agent, RunContext
 
-from src.config import settings
-from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt
-from src.debate.prompts_models import CoordinatorOutput
+from src.ai_model import get_ai_api_key, get_ai_model, get_exa_api_key
+from src.debate.models import DebateState, Statement, Persona, ExtrapolatedPrompt, SearchQuery, WebContent, DebateStateHelper
+from src.debate.prompts_models import CoordinatorOutput, CommentatorOutput
 
 from src.prompts.coordinator import coordinator_prompt
 from src.prompts.commentator import commentator_prompt
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from src.tools import websearch
+from src.debate.const_personas import COMMENTATOR_PERSONA, COORDINATOR_PERSONA
 
 class DebateContext(BaseModel):
     topic: str
     participants: List[dict]
     conversation_history: str
+
+class SearchToolResponse(BaseModel):
+    """Response from the search tool"""
+    web_contents: List[WebContent]
+
+class ParticipantResponse(BaseModel):
+    """Structured response from a participant"""
+    response: str = Field(description="The participant's response in the debate")
+    sources: Optional[List[str]] = Field(default=None, description="Sources used in the response")
+
+def get_summary(summary: CommentatorOutput) -> str:
+    return f"Key themes: {summary.key_themes}\n\nActionable takeaways: {summary.actionable_takeaways}\n\nFuture recommendations: {summary.future_recommendations}"
 
 def format_conversation(conversation_history: List[Statement]) -> str:
     return "\n\n".join([
@@ -51,56 +63,8 @@ def build_debate_context(state: DebateState) -> dict:
         "conversation_history": format_conversation(state["conversation_history"])
     }
 
-model = OpenAIModel(
-    'deepseek-chat',
-    base_url='https://api.deepseek.com/v1',
-    api_key=settings.DEEPSEEK_API_KEY,
-    # api_key=os.getenv("OPENAI_API_KEY")
-)
-commentator_agent = Agent(
-        model=model,
-        system_prompt=commentator_prompt
-    )
-
-coordinator_agent = Agent(
-    model=model,
-    system_prompt=coordinator_prompt,
-    deps_type=ExtrapolatedPrompt,
-    result_type=CoordinatorOutput
-)
-
 # Personas
-personas = []
-commentator_persona = Persona(
-    uuid=str(uuid.uuid4()),
-    name="Commentator",
-    title="Debate commentator",
-    image_url="https://ui-avatars.com/api/?name=Commentator",
-    description="Debate commentator",
-    system_prompt=commentator_prompt,
-    personality="Insightful and articulate",
-    expertise=["Debate analysis", "Public speaking"],
-    attitude="Observant and analytical",
-    background="Expert in debate commentary",
-    debate_style="Analytical and engaging"
-)
-personas.append(commentator_persona)
-
-coordinator_persona = Persona(
-    uuid=str(uuid.uuid4()),
-    name="Coordinator",
-    title="Debate manager",
-    image_url="https://ui-avatars.com/api/?name=Coordinator",
-    description="Debate coordinator",
-    system_prompt=coordinator_prompt,
-    personality="Organized and methodical",
-    expertise=["Debate management", "Process coordination"],
-    attitude="Professional and efficient",
-    background="Experienced debate coordinator",
-    debate_style="Structured and systematic"
-)
-personas.append(coordinator_persona)
-
+personas = [COMMENTATOR_PERSONA, COORDINATOR_PERSONA]
 
 def save_graph_image(bytes_image, filename):
     buffer = BytesIO(bytes_image)
@@ -112,12 +76,25 @@ def save_graph_image(bytes_image, filename):
 async def summarizer(state: DebateState):
     conversation_history = state["conversation_history"]
     formatted_history = format_conversation(conversation_history)
-    summary = await commentator_agent.run(formatted_history)
+    if state["extrapolated_prompt"] is None:
+        raise ValueError("Extrapolated prompt is missing")
+    model = get_ai_model(state["debate_id"])
+    if model is None:
+        raise ValueError(f"Cannot load LLM model for debate id: ", state["debate_id"])
+    
+    commentator_agent = Agent(
+        model=model,
+        system_prompt=commentator_prompt,
+        deps_type=ExtrapolatedPrompt,
+        result_type=CommentatorOutput  # or your specific CommentatorOutput type
+    )
+    
+    summary = await commentator_agent.run(formatted_history, deps=state["extrapolated_prompt"])
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
-            content=summary.data,
-            persona_uuid=str(commentator_persona.uuid),
+            content=get_summary(summary.data),
+            persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
     return {"conversation_history": [statement]}
@@ -141,7 +118,17 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
         goto = "participant_agent"
 
     context_conversation = format_conversation(conversation_history)
-    context = f'Original topic of the debate: {state["extrapolated_prompt"]}. Always react to last message in the conversation! History of conversation: {context_conversation}'
+    context = f'<task>Lead the debate. Always react to last message in the conversation!</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
+
+    model = get_ai_model(state["debate_id"])
+    if model is None:
+        raise ValueError(f"Cannot load LLM model for debate id: ", state["debate_id"])
+    
+    coordinator_agent = Agent(
+        model=model,
+        system_prompt=coordinator_prompt,        
+        result_type=CoordinatorOutput
+    )
     
     coordinator_output = await coordinator_agent.run(context)
     next_speaker_uuid = coordinator_output.data.next_speaker_uuid
@@ -151,13 +138,13 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     justification_statement : Statement = Statement(
             uuid=str(uuid4()),
             content=justification,
-            persona_uuid=str(coordinator_persona.uuid),
+            persona_uuid=str(COORDINATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
     question_statement : Statement = Statement(
             uuid=str(uuid4()),
             content=question,
-            persona_uuid=str(coordinator_persona.uuid),
+            persona_uuid=str(COORDINATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
 
@@ -169,39 +156,81 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
 
 async def participant_agent(state: DebateState):
     print(f"state: {state}")
+    if state["extrapolated_prompt"] is None:
+        raise ValueError("Extrapolated prompt is missing")
     def create_agent(uuid: str):
         persona = get_persona_by_uuid(state["participants"], uuid)
         if not persona:
             raise ValueError(f"No persona found with UUID: {uuid}")
             
+        model = get_ai_model(state["debate_id"])
+        if model is None:
+            raise ValueError(f"Cannot load LLM model for debate id: ", state["debate_id"])
+        
         debate_agent = Agent(
             model=model,
             system_prompt=persona.system_prompt,
-            deps_type=DebateContext,
-        )   
-        return debate_agent
-    
-    
-        
+            deps_type=ExtrapolatedPrompt,
+            result_type=ParticipantResponse
+        )     
+
+        @debate_agent.system_prompt()
+        def get_topic_and_last_statements() -> str:
+            return f"Topic: {state['topic']}\nLast statements: {DebateStateHelper.print_conversation_history(state)}"
+
+        exa_api_key = get_exa_api_key(state["debate_id"])
+        if exa_api_key is not None and exa_api_key != '':      
+            print("Exa key found - Adding search tool to agent...")
+            search_tool_marker = "Use the search tool to find relevant information to support your arguments."
+            
+            @debate_agent.tool
+            async def search(ctx: RunContext[ExtrapolatedPrompt], query: str) -> SearchToolResponse:
+                """Search the internet for relevant information."""
+                try:
+                    search_query = SearchQuery(                
+                        queries=[query],
+                        query_id=str(uuid4()),
+                        exa_api_key=exa_api_key
+                    )
+                    results = await websearch(search_query)
+                    return SearchToolResponse(web_contents=results)
+                except Exception as e:
+                    print(f"Error searching: {e}")
+                    return SearchToolResponse(web_contents=[])
+        else:
+            print("Exa key not found - skipping search tool")
+            search_tool_marker = ""
+
+        return debate_agent, search_tool_marker
+
     current_speaker_no = int(state["current_speaker_uuid"])
     current_speaker_uuid = state["participants_queue"][current_speaker_no]
     conversation_history = format_conversation(state["conversation_history"])
+    last_statement = state["conversation_history"][-1]
 
-    agent = create_agent(current_speaker_uuid)
-    context = DebateContext(
-        topic=state["topic"],
-        participants=[{"name": p.name} for p in state["participants"]],
-        conversation_history=conversation_history
+    agent, search_tool_marker = create_agent(current_speaker_uuid)
+    context = ExtrapolatedPrompt(
+        prompt=str(state["extrapolated_prompt"]),
+        context=conversation_history,
+        topic=state["topic"]
     )
-    agent_response = await agent.run(f"You are now speaking in the debate", deps=context)
+    
+    agent_response = await agent.run(
+        f"You are now speaking in the debate. Answer to the last question: {last_statement.content}. {search_tool_marker}",
+        deps=context
+    )
 
-    statement : Statement = Statement(
-            uuid=str(uuid4()),
-            content=agent_response.data,
-            persona_uuid=str(current_speaker_uuid),
-            timestamp=datetime.now()
-        )
-    return {"conversation_history": [statement], "current_speaker_uuid": str(current_speaker_no + 1)}
+    statement: Statement = Statement(
+        uuid=str(uuid4()),
+        content=agent_response.data.response,
+        persona_uuid=str(current_speaker_uuid),
+        timestamp=datetime.now()
+    )
+    
+    return {
+        "conversation_history": [statement],
+        "current_speaker_uuid": str(current_speaker_no + 1)
+    }
 
 
 memory = MemorySaver()

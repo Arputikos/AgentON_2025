@@ -1,2 +1,7 @@
-.env*
+.env
+.env.*
 .venv/
+temp/
+output/
+package-lock.json
+**/bun.lockb

@@ -2,9 +2,9 @@
 
 import DebateRoom from '@/components/DebateRoom';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function DebatePage() {
+function DebatePageContent() {
   const searchParams = useSearchParams();
   const stateParam = searchParams.get('state');//debateId
   const [debateId, setDebateId] = useState<string | null>(null);
@@ -20,8 +20,14 @@ export default function DebatePage() {
   }
 
   return (
-    <DebateRoom 
-      id={debateId}
-    />
+    <DebateRoom debateId={debateId} />
+  );
+}
+
+export default function DebatePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DebatePageContent />
+    </Suspense>
   );
 }

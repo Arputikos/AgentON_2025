@@ -1,149 +1,171 @@
 'use client';
 
-import { useEffect, useState, useMemo, memo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { useSearchParams } from 'next/navigation';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
-import { useParticipantStream } from '@/hooks/useParticipantStream';
+import { useWebsocketStream } from '@/hooks/useWebsocketStream';
+import { Github } from 'lucide-react';
+import Loader from '@/components/Loader';
+import { showSpeakerNotification } from '@/lib/utils';
+import toast from 'react-hot-toast';
+import { useSearchParams } from 'next/navigation';
 
-function calculatePosition(index: number, total: number) {
-    const angle = (index * 2 * Math.PI / total) - Math.PI / 2;
-    const radius = 37.5;
-    const top = `${50 + radius * Math.sin(angle)}%`;
-    const left = `${50 + radius * Math.cos(angle)}%`;
-    
-    return {
-      top,
-      left,
-      transform: `translate(-50%, -50%)`
-    };
+interface DebateRoomProps {
+  debateId: string | null;
 }
 
-export default function DebateRoom() {
-  const [showChat, setShowChat] = useState(true);
+export default function DebateRoom({ debateId }: DebateRoomProps) {
   const searchParams = useSearchParams();
-  const debateId = searchParams.get('state');
+  const [displayTopic, setDisplayTopic] = useState<string>('Loading...');
+  const [showChat, setShowChat] = useState(true);
   const { isConnected } = useWebSocket();
   
-  const { 
-    participants, 
-    isInitializing, 
-    isComplete, 
+  const {
+    isInitializing,
+    debateFinished,
+    participants,
     error: participantError,
-    topic,
     messages
-  } = useParticipantStream(debateId);
+  } = useWebsocketStream(debateId);
 
-  // Memoize speaker positions calculation
-  const speakers = useMemo(() => {
-    if (!participants.length) return [];
-    console.log('Calculating positions for speakersusedebatestre:', participants.length);
-    return participants.map((speaker, index) => {
-      const position = calculatePosition(index, participants.length);
-      return {
-        ...speaker,
-        position
-      };
-    });
-  }, [participants]); // Only recalculate when participants array changes
-
-
-
-  // Add debug logging
+  const prevParticipantsLength = useRef(0);
+  
+  // get topic from url
   useEffect(() => {
-    console.log('Current participants:', participants);
-    console.log('Initialization status:', { isInitializing, isComplete });
-  }, [participants, isInitializing, isComplete]);
+    const topicFromUrl = searchParams.get('topic');
+    if (topicFromUrl) {
+      setDisplayTopic(decodeURIComponent(topicFromUrl));
+    }
+  }, [searchParams]);
+
+
+
+  // Show notification when new participant joins - needs to be triggered from debate room 
+  useEffect(() => {
+    if (participants.length > prevParticipantsLength.current) {
+      const newParticipant = participants[participants.length - 1];
+      toast(newParticipant.name, showSpeakerNotification(newParticipant.name, newParticipant.borderColor));
+    }
+    prevParticipantsLength.current = participants.length;
+  }, [participants]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-
-        {/* Connection Status Indicator */}
-      <div className="fixed top-4 right-4 flex items-center gap-4">
-        {/* Chat Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showChat}
-            onChange={(e) => setShowChat(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          <span className="text-sm font-medium text-gray-900">Show Chat</span>
-        </label>
-        
-        {/* Connection Status Dot */}
-        <div className={`w-3 h-3 rounded-full ${
-          isConnected ? 'bg-green-500' : 'bg-red-500'
-        }`} />
-      </div>
-      
+    <div className="h-screen w-full bg-gray-100 flex flex-col">
       {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center">
-            <Link href="/" className="mr-4">
-              <ArrowLeft className="w-6 h-6 text-gray-600 hover:text-gray-900" />
-            </Link>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
-              <p className="text-gray-600 mt-1">Topic: {topic}</p> 
+      <header className="bg-white shadow-md h-24 w-full">
+        <div className="h-full px-22 max-w-[2400px] mx-auto flex items-center justify-between">
+
+            {/* Debate information container */}
+            <div className="flex items-center">
+              <Link href="/" className="mr-6">
+                <ArrowLeft className="w-6 h-6 text-gray-600 hover:text-gray-900 transition-colors" />
+              </Link>
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-bold text-gray-900">Debate Room</h1>
+                <p className="text-gray-600 mt-1 text-lg">Topic: {displayTopic}</p>
+              </div>
             </div>
-          </div>
+
+            {/* Additional header content */}
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showChat}
+                  onChange={(e) => setShowChat(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <span className="text-md font-medium text-gray-900">Show Chat</span>
+              </label>
+              <a 
+                href="https://github.com/Arputikos/AgentON_2025" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 hover:text-gray-800 transition-colors"
+              >
+                <Github className="w-8 h-8" />
+              </a>
+              {/* Connection Status Dot */}
+              <div className="flex items-center gap-2">
+                <div className={`w-5 h-5 rounded-full ${
+                  isConnected ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+              </div>
+            </div>
         </div>
       </header>
 
-      <main className="w-full mx-auto px-4 py-8 min-h-[calc(100vh-100px)]">
-        <div className="grid grid-cols-12 gap-8 h-full">
-          {/* Moderator Panel - Left Side */}
-          <div className="col-span-2">
+      <main className="flex-1 w-full py-8 px-12 overflow-hidden">
+        <div
+          className="grid gap-8 h-full transition-all duration-300 ease-in-out"
+          style={{
+            gridTemplateColumns: showChat ? "3fr 6fr 3fr" : "3fr 9fr",
+          }}
+        >
+          {/* Moderator Panel */}
+          <div className="bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out"
+            style={{
+              transform: showChat ? "scale(0.95)" : "scale(1)",
+            }}
+          >
             <ModeratorCard />
           </div>
 
-          {/* Debate Table - Center */}
-          <div className="col-span-5 bg-white rounded-xl shadow-md p-8">
-            <div className="relative w-full aspect-square">
-              {/* Virtual Round Table */}
+          {/* Debate Table */}
+          <div
+            className="bg-white p-8 rounded-xl shadow-md h-full flex items-center justify-center min-w-0 transition-transform duration-300 ease-in-out"
+            style={{
+              transform: showChat ? "scale(0.95)" : "scale(1)",
+            }}
+          >
+            <div className="relative w-full aspect-square max-w-[1000px]">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-3/4 h-3/4 bg-gray-100 rounded-full border-8 border-gray-200 shadow-inner" />
               </div>
 
-              {/* Speakers around the table */}
-              {speakers.length > 0 ? (
-                speakers.map((speaker) => (
+              {participants.length > 0 ? (
+                participants.map(participant => (
                   <SpeakerCard
-                    key={speaker.id}
-                    name={speaker.name}
-                    role={speaker.role}
-                    avatar={speaker.avatar}
-                    position={speaker.position!}
+                    key={participant.id}
+                    name={participant.name}
+                    role={participant.role}
+                    avatar={participant.avatar}
+                    position={participant.position}
+                    borderColor={participant.borderColor} 
                   />
                 ))
               ) : (
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  {isInitializing ? (
-                    <div className="flex flex-col items-center">
-                      <div className="w-12 h-12 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-                      <span className="text-gray-600 mt-2">Loading speakers...</span>
-                    </div>
-                  ) : 'No speakers yet'}
+                ""
+              )}
+
+              {/* Keep the loader in the center */}
+              {isInitializing ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <Loader size="lg" color="primary" />
                 </div>
+              ) : (
+                ""
               )}
             </div>
           </div>
-
-          {/* Chat History - only shown when toggled */}
-          {showChat && (
-            <div className="col-span-5">
-              <ChatHistory messages={messages} />
-            </div>
-          )}
+          <div
+            className={`bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out overflow-y-auto ${
+              showChat 
+                ? "translate-x-0 opacity-100 visible scale-95" 
+                : "translate-x-full opacity-0 invisible"
+            }`}
+          >
+            <ChatHistory messages={messages} debateFinished={debateFinished} isVisible={showChat} />
+          </div>
         </div>
       </main>
+
+
     </div>
   );
 }

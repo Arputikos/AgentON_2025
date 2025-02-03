@@ -31,7 +31,6 @@ import uuid
 from typing import List
 import random
 from fastapi import HTTPException
-import os
 import traceback
 
 app = FastAPI()
@@ -68,7 +67,7 @@ async def process_prompt(request: PromptRequest):
 
         model = get_ai_model(debate_id)
         if model is None:
-            print(f"Error processing prompt: {str(e)}, debate id: {debate_id}. AI model is none")
+            print(f"Error processing prompt, debate id: {debate_id}. AI model is none")
             raise HTTPException(
                 status_code=500,
                 detail="Failed to process debate prompt. Please try again."
@@ -166,7 +165,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         model = get_ai_model(debate_id)
         if model is None:
-            print(f"Error processing prompt: {str(e)}, debate id: {debate_id}. AI model is none")
+            print(f"Error processing prompt, debate id: {debate_id}. AI model is none")
             raise HTTPException(
                 status_code=500,
                 detail="Failed to process debate prompt. Please try again."

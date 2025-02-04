@@ -107,9 +107,6 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     if conversation_history and conversation_history[-1].persona_uuid == str(COMMENTATOR_PERSONA.uuid):
         return Command(goto=END)
     
-    next_speaker_no = int(state["current_speaker_uuid"])
-    participants_queue = state["participants_queue"]
-    
     context_conversation = format_conversation(conversation_history)
     context = f'<task>Lead the debate. Always react to last message in the conversation!</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
 
@@ -124,7 +121,6 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
     )
     
     coordinator_output = await coordinator_agent.run(context)
-    next_speaker_uuid = coordinator_output.data.next_speaker_uuid
     question = coordinator_output.data.question
     justification = coordinator_output.data.justification
 
@@ -151,6 +147,20 @@ async def participant_agent(state: DebateState):
     print(f"state: {state}")
     if state["extrapolated_prompt"] is None:
         raise ValueError("Extrapolated prompt is missing")
+        
+    current_speaker_no = int(state["current_speaker_uuid"])
+    
+    # Check if we've reached the end of participants queue before trying to access it
+    if current_speaker_no >= len(state["participants_queue"]):
+        return Command(
+            update={},
+            goto=END
+        )
+        
+    current_speaker_uuid = state["participants_queue"][current_speaker_no]
+    conversation_history = format_conversation(state["conversation_history"])
+    last_statement = state["conversation_history"][-1]
+
     def create_agent(uuid: str):
         persona = get_persona_by_uuid(state["participants"], uuid)
         if not persona:
@@ -196,11 +206,6 @@ async def participant_agent(state: DebateState):
 
         return debate_agent, search_tool_marker
 
-    current_speaker_no = int(state["current_speaker_uuid"])
-    current_speaker_uuid = state["participants_queue"][current_speaker_no]
-    conversation_history = format_conversation(state["conversation_history"])
-    last_statement = state["conversation_history"][-1]
-
     agent, search_tool_marker = create_agent(current_speaker_uuid)
     context = ExtrapolatedPrompt(
         prompt=str(state["extrapolated_prompt"]),
@@ -220,20 +225,12 @@ async def participant_agent(state: DebateState):
         timestamp=datetime.now()
     )
     
-    # Check if this was the last speaker
-    next_speaker_no = current_speaker_no + 1
-    try:
-        state["participants_queue"][next_speaker_no]
-        goto = "coordinator"
-    except IndexError:
-        goto = "summarizer"
-    
     return Command(
         update={
             "conversation_history": [statement],
             "current_speaker_uuid": str(current_speaker_no + 1)
         },
-        goto=goto
+        goto="summarizer"
     )
 
 
@@ -244,9 +241,9 @@ graph_builder.add_node("coordinator", coordinator)
 graph_builder.add_node("summarizer", summarizer)
 graph_builder.add_node("participant_agent", participant_agent)
 graph_builder.set_entry_point("coordinator")
-graph_builder.add_edge("participant_agent", "coordinator")
 graph_builder.add_edge("participant_agent", "summarizer")
 graph_builder.add_edge("coordinator", "participant_agent")
+graph_builder.add_edge("summarizer","participant_agent")
 graph_builder.add_edge("coordinator", END)
 graph_builder.add_edge("summarizer", END)
 graph = graph_builder.compile(

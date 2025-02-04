@@ -227,10 +227,21 @@ async def participant_agent(state: DebateState):
         timestamp=datetime.now()
     )
     
-    return {
-        "conversation_history": [statement],
-        "current_speaker_uuid": str(current_speaker_no + 1)
-    }
+    # Check if this was the last speaker
+    next_speaker_no = current_speaker_no + 1
+    try:
+        state["participants_queue"][next_speaker_no]
+        goto = "coordinator"
+    except IndexError:
+        goto = "summarizer"
+    
+    return Command(
+        update={
+            "conversation_history": [statement],
+            "current_speaker_uuid": str(current_speaker_no + 1)
+        },
+        goto=goto
+    )
 
 
 memory = MemorySaver()
@@ -241,6 +252,7 @@ graph_builder.add_node("summarizer", summarizer)
 graph_builder.add_node("participant_agent", participant_agent)
 graph_builder.set_entry_point("coordinator")
 graph_builder.add_edge("participant_agent", "coordinator")
+graph_builder.add_edge("participant_agent", "summarizer")  # Add direct edge to summarizer
 graph_builder.add_edge("summarizer", END)
 graph = graph_builder.compile(
     checkpointer=memory

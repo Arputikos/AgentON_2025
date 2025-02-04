@@ -86,6 +86,7 @@ async def process_prompt(request: PromptRequest):
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
         print(f"Enriched context: {enriched_context.data}")
+        language = enriched_context.data.language
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
@@ -100,6 +101,7 @@ async def process_prompt(request: PromptRequest):
         with open(config_file, "w") as f:
             debate_config = DebateConfig(
                 speakers=[],
+                language=language,
                 prompt=request.prompt,
             )
             json.dump(debate_config.model_dump(), f, indent=2, default=str)
@@ -160,6 +162,8 @@ async def websocket_endpoint(websocket: WebSocket):
         with open(config_file) as f:
             config_data = json.load(f)
             debate_config = DebateConfig(**config_data)
+        
+        language = debate_config.language
             
         print(f"Loaded debate prompt: {extrapolated_prompt}")
         print(f"Loaded debate config: {debate_config}")
@@ -291,6 +295,7 @@ async def websocket_endpoint(websocket: WebSocket):
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
             participants=personas_full_list_RPEA.personas,
+            language=language,
             current_speaker_uuid="0",
             round_number=1,
             conversation_history=[opening_stmt],

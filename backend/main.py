@@ -61,9 +61,10 @@ async def process_prompt(request: PromptRequest):
     try:
         debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
 
-        # Save API keys to os variables
+        # Save API keys to os variables        
         set_ai_api_key(debate_id, decrypt(request.ai_api_key))
-        set_exa_api_key(debate_id, decrypt(request.exa_api_key))
+        if request.exa_api_key:  # Add null check for optional key
+            set_exa_api_key(debate_id, decrypt(request.exa_api_key))
 
         model = get_ai_model(debate_id)
         if model is None:

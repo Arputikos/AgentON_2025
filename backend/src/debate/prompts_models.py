@@ -16,6 +16,7 @@ class ContextOutput(BaseModel):
     dynamic_functionalities: str = Field(..., description="Dynamic functionalities of the debate")
     modular_components: str = Field(..., description="Modular components of the debate")
     deep_dive_modules: str = Field(..., description="Deep dive modules of the debate")
+    language: str = Field(..., description="Language of the debate")
 
 class RPEAOutput(BaseModel):
     """

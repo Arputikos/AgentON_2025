@@ -80,7 +80,8 @@ async def process_prompt(request: PromptRequest):
         context_agent = Agent(
             model=model,
             system_prompt=context_prompt,
-            result_type=ContextOutput
+            result_type=ContextOutput,
+            retries=3
         )
         
         # Process through Context Enrichment Agent
@@ -181,7 +182,8 @@ async def websocket_endpoint(websocket: WebSocket):
         rpea_agent = Agent(
             model=model,
             system_prompt=rpea_prompt,
-            result_type=RPEAOutput
+            result_type=RPEAOutput,
+            retries=3
         )
         
         # Generate personas
@@ -234,7 +236,8 @@ async def websocket_endpoint(websocket: WebSocket):
         prompt_crafter_agent = Agent(
             model=model,
             system_prompt=prompt_crafter_prompt,
-            result_type=PromptCrafterOutput
+            result_type=PromptCrafterOutput,
+            retries=3
         )
         
         # Generate system prompts for each debate persona - after each persona is created stream the persona to the client
@@ -271,7 +274,8 @@ async def websocket_endpoint(websocket: WebSocket):
         opening_agent = Agent(
             model=model,
             system_prompt=opening_agent_prompt,
-            result_type=OpeningOutput
+            result_type=OpeningOutput,
+            retries=3
         )   
 
         print("Opening")
@@ -363,7 +367,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,                    
-                    result_type=ModeratorOutput
+                    result_type=ModeratorOutput,
+                    retries=3
                 )
                 
                 @moderator_agent.system_prompt()
@@ -407,7 +412,8 @@ async def websocket_endpoint(websocket: WebSocket):
             commentator_agent = Agent(
                 model=model,
                 system_prompt=commentator_prompt,                
-                result_type=CommentatorOutput
+                result_type=CommentatorOutput,
+                retries=3
             )
 
             @commentator_agent.system_prompt()

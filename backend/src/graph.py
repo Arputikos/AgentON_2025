@@ -112,8 +112,9 @@ async def summarizer(state: DebateState):
 async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
     conversation_history = state["conversation_history"]
     
-    # Check if the last message was from the summarizer
-    if conversation_history and conversation_history[-1].persona_uuid == str(COMMENTATOR_PERSONA.uuid):
+    # Check if we've reached the end of participants queue
+    current_speaker_no = int(state["current_speaker_uuid"])
+    if current_speaker_no >= len(state["participants_queue"]):
         return Command(goto=END)
     
     context_conversation = format_conversation(conversation_history)

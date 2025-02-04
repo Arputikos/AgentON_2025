@@ -370,7 +370,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 def current_state_of_debate() -> str:
                     return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
                 
-                moderator_result = await moderator_agent.run("Is the debate finished?")
+                moderator_result = await moderator_agent.run("Is the debate finished? Make sure there have been at least two rounds of debate.")
                 print(f"Moderator result: {moderator_result}")
                 # Evaluate debate status
 

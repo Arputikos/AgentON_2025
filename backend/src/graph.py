@@ -101,22 +101,15 @@ async def summarizer(state: DebateState):
 
 
 async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
-    def everyone_has_spoken(participants_queue, next_speaker_no):
-        try:
-            participants_queue[next_speaker_no]
-        except IndexError:
-            return True
-        return False
-    
     conversation_history = state["conversation_history"]
-
+    
+    # Check if the last message was from the summarizer
+    if conversation_history and conversation_history[-1].persona_uuid == str(COMMENTATOR_PERSONA.uuid):
+        return Command(goto=END)
+    
     next_speaker_no = int(state["current_speaker_uuid"])
     participants_queue = state["participants_queue"]
-    if everyone_has_spoken(participants_queue, next_speaker_no):
-        goto = "summarizer"
-    else:
-        goto = "participant_agent"
-
+    
     context_conversation = format_conversation(conversation_history)
     context = f'<task>Lead the debate. Always react to last message in the conversation!</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
 
@@ -150,7 +143,7 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
 
     return Command(
         update={"conversation_history": [justification_statement, question_statement]},
-        goto=goto,
+        goto="participant_agent",
     )
 
 
@@ -252,7 +245,9 @@ graph_builder.add_node("summarizer", summarizer)
 graph_builder.add_node("participant_agent", participant_agent)
 graph_builder.set_entry_point("coordinator")
 graph_builder.add_edge("participant_agent", "coordinator")
-graph_builder.add_edge("participant_agent", "summarizer")  # Add direct edge to summarizer
+graph_builder.add_edge("participant_agent", "summarizer")
+graph_builder.add_edge("coordinator", "participant_agent")
+graph_builder.add_edge("coordinator", END)
 graph_builder.add_edge("summarizer", END)
 graph = graph_builder.compile(
     checkpointer=memory

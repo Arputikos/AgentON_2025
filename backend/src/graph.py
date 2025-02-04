@@ -97,7 +97,16 @@ async def summarizer(state: DebateState):
             persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
-    return {"conversation_history": [statement]}
+    
+    # Check if we've reached the end of participants queue
+    current_speaker_no = int(state["current_speaker_uuid"])
+    if current_speaker_no >= len(state["participants_queue"]):
+        return Command(goto=END)
+    
+    return Command(
+        update={"conversation_history": [statement]},
+        goto="coordinator"
+    )
 
 
 async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
@@ -241,11 +250,11 @@ graph_builder.add_node("coordinator", coordinator)
 graph_builder.add_node("summarizer", summarizer)
 graph_builder.add_node("participant_agent", participant_agent)
 graph_builder.set_entry_point("coordinator")
-graph_builder.add_edge("participant_agent", "summarizer")
 graph_builder.add_edge("coordinator", "participant_agent")
-graph_builder.add_edge("summarizer","participant_agent")
-graph_builder.add_edge("coordinator", END)
+graph_builder.add_edge("participant_agent", "summarizer")
+graph_builder.add_edge("summarizer", "coordinator")
 graph_builder.add_edge("summarizer", END)
+graph_builder.add_edge("coordinator", END)
 graph = graph_builder.compile(
     checkpointer=memory
 )

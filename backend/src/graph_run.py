@@ -16,11 +16,6 @@ async def stream_graph_updates(input_messages: list[dict], config: dict):
                 print(e)  # TODO: Handle this
 
 
-config = {
-    "configurable": {"thread_id": "1", "checkpoint_ns": ""},
-    "recursion_limit": 100
-}
-
 example_init_state = {   # Dictionary representation of DebateState
     "participants": DEFAULT_PERSONAS[:2],
     "conversation_history": [],

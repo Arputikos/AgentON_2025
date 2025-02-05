@@ -11,11 +11,6 @@ from src.graph import Command, END
 from langgraph.graph import StateGraph
 from langgraph.errors import GraphRecursionError
 
-config = {
-    "configurable": {"thread_id": "1", "checkpoint_ns": ""},
-    "recursion_limit": 100
-}
-
 # Mock personas
 MOCK_PERSONAS = [
     Persona(
@@ -32,6 +27,11 @@ MOCK_PERSONAS = [
         debate_style=""
     ) for i in range(3)
 ]
+
+config = {
+    "configurable": {"thread_id": "1", "checkpoint_ns": ""},
+    "recursion_limit": 3 * len(MOCK_PERSONAS)
+}
 
 # Mock coordinator function
 async def mock_coordinator(state: Dict) -> Command:
@@ -175,7 +175,7 @@ async def test_debate_round():
         messages = []
         
         try:
-            async for event in mock_graph.astream(current_state):
+            async for event in mock_graph.astream(current_state, config=config):
                 for state_update in event.values():
                     if not state_update:
                         continue

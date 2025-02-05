@@ -22,7 +22,6 @@ from src.debate.prompts_models import ContextOutput, RPEAOutput, PromptCrafterOu
 
 from src.graph import graph, get_persona_by_uuid, get_summary
 from src.debate.const_personas import CONST_PERSONAS
-from src.graph_run import config
 from langgraph.errors import GraphRecursionError
 
 import json
@@ -310,6 +309,11 @@ async def websocket_endpoint(websocket: WebSocket):
             debate_id=debate_id
         )
         
+        graph_config = {
+            "configurable": {"thread_id": "1", "checkpoint_ns": ""},
+            "recursion_limit": 3 * len(debate_personas)
+        }        
+
         async def stream_graph_updates(input_message: dict, config: dict):  
             try:          
                 current_state: dict = copy.deepcopy(input_message)
@@ -349,12 +353,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 while True:  # Round loop
                     print("Round loop started")
                     try:
-                        await stream_graph_updates(init_state, config)
+                        await stream_graph_updates(init_state, graph_config)
                     except GraphRecursionError:
                         print("Hit recursion limit, breaking round loop")
-                        snapshot = graph.get_state(config)
+                        snapshot = graph.get_state(graph_config)
                         break
-                    snapshot = graph.get_state(config)
+                    snapshot = graph.get_state(graph_config)
                     if not snapshot.next:
                         break
 

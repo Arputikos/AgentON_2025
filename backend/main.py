@@ -314,7 +314,7 @@ async def websocket_endpoint(websocket: WebSocket):
             "recursion_limit": 3 * len(debate_personas)
         }        
 
-        async def stream_graph_updates(input_message: dict, config: dict):  
+        async def stream_graph_updates(input_message: dict, config: dict):
             try:          
                 current_state: dict = copy.deepcopy(input_message)
                 async for event in graph.astream(current_state, config=config):
@@ -322,7 +322,19 @@ async def websocket_endpoint(websocket: WebSocket):
                         if not state_update:
                             continue
                         try:
-                            last_statement = state_update["conversation_history"][-1]
+                            # Need to extend existing history instead of replacing
+                            if "conversation_history" in state_update:
+                                new_statements = state_update["conversation_history"]
+                                current_state["conversation_history"].extend(new_statements)
+                            else:
+                                new_statements = state_update["conversation_history"][-1]
+                                current_state["conversation_history"] = state_update["conversation_history"]
+                                
+                            # Need to update current_speaker_uuid if present
+                            if "current_speaker_uuid" in state_update:
+                                current_state["current_speaker_uuid"] = state_update["current_speaker_uuid"]
+                                
+                            last_statement = new_statements[-1]
                             persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
                             if persona:
                                 name = persona.name
@@ -333,8 +345,6 @@ async def websocket_endpoint(websocket: WebSocket):
                             reply = data_to_frontend_payload(name, last_statement.content)
                             print(f"Persona {name} said: {last_statement.content}")
                             await websocket.send_json(reply)
-                            # Update current state with the new state
-                            current_state = state_update
                         except Exception as e:
                             print("Error in stream_graph_updates astream: ", e)
                             print("Full stack trace:", traceback.format_exc())

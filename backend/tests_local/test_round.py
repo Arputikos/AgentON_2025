@@ -43,7 +43,11 @@ async def mock_coordinator(state: Dict) -> Command:
         return Command(goto=END)
         
     next_speaker_uuid = state["participants_queue"][current_speaker_no]
-    print(f"Coordinator speaks: Directing the debate to participant {next_speaker_uuid}")
+    next_speaker = next((p for p in MOCK_PERSONAS if p.uuid == next_speaker_uuid), None)
+    if not next_speaker:
+        raise ValueError(f"No persona found with UUID: {next_speaker_uuid}")
+    next_speaker_name = next_speaker.name
+    print(f"Coordinator speaks: Directing the debate to participant {next_speaker_name}")
   
     statement = Statement(
         uuid=str(uuid4()),

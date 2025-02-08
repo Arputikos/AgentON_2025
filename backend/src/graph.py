@@ -23,6 +23,9 @@ from pydantic import BaseModel, Field
 from src.tools import websearch
 from src.debate.const_personas import COMMENTATOR_PERSONA, COORDINATOR_PERSONA
 
+# Personas
+# debate_personas = [COMMENTATOR_PERSONA, COORDINATOR_PERSONA]
+
 class DebateContext(BaseModel):
     topic: str
     participants: List[dict]
@@ -63,9 +66,6 @@ def build_debate_context(state: DebateState) -> dict:
         "conversation_history": format_conversation(state["conversation_history"])
     }
 
-# Personas
-personas = [COMMENTATOR_PERSONA, COORDINATOR_PERSONA]
-
 def save_graph_image(bytes_image, filename):
     buffer = BytesIO(bytes_image)
     
@@ -73,7 +73,8 @@ def save_graph_image(bytes_image, filename):
         img.save(filename)
 
 
-async def summarizer(state: DebateState):
+async def summarizer(state: DebateState) -> Command:
+    current_speaker_no = int(state["current_speaker_uuid"])
     conversation_history = state["conversation_history"]
     formatted_history = format_conversation(conversation_history)
     if state["extrapolated_prompt"] is None:
@@ -97,28 +98,31 @@ async def summarizer(state: DebateState):
             persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
-    
-    # Check if we've reached the end of participants queue
-    current_speaker_no = int(state["current_speaker_uuid"])
     if current_speaker_no >= len(state["participants_queue"]):
-        return Command(goto=END)
-    
+        return Command(
+            update={"conversation_history": [statement]},
+            goto=END
+        )    
     return Command(
         update={"conversation_history": [statement]},
         goto="coordinator"
     )
 
 
-async def coordinator(state: DebateState) -> Command[Literal["participant_agent", "summarizer"]]:
-    conversation_history = state["conversation_history"]
-    
-    # Check if we've reached the end of participants queue
+async def coordinator(state: DebateState) -> Command:
     current_speaker_no = int(state["current_speaker_uuid"])
     if current_speaker_no >= len(state["participants_queue"]):
+        print("All participants have spoken, skipping coordinator, ending round")
         return Command(goto=END)
     
+    conversation_history = state["conversation_history"]
+    next_speaker_uuid = state["participants_queue"][current_speaker_no]
+    next_speaker = get_persona_by_uuid(state["participants"],next_speaker_uuid)
+    if not next_speaker:
+        raise ValueError(f"No persona found with UUID: {next_speaker_uuid}")
+    next_speaker_name = next_speaker.name
     context_conversation = format_conversation(conversation_history)
-    context = f'<task>Lead the debate. Always react to last message in the conversation!</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
+    context = f'<task>Lead the debate. Always react to last message in the conversation! Direct your next question to {next_speaker_name}.</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
 
     model = get_ai_model(state["debate_id"])
     if model is None:
@@ -154,18 +158,13 @@ async def coordinator(state: DebateState) -> Command[Literal["participant_agent"
 
 
 async def participant_agent(state: DebateState):
-    print(f"state: {state}")
+    current_speaker_no = int(state["current_speaker_uuid"])
+    if current_speaker_no >= len(state["participants_queue"]):
+        print("All participants have spoken, ending round")
+        return Command(goto=END)
+
     if state["extrapolated_prompt"] is None:
         raise ValueError("Extrapolated prompt is missing")
-        
-    current_speaker_no = int(state["current_speaker_uuid"])
-    
-    # Check if we've reached the end of participants queue before trying to access it
-    if current_speaker_no >= len(state["participants_queue"]):
-        return Command(
-            update={},
-            goto=END
-        )
         
     current_speaker_uuid = state["participants_queue"][current_speaker_no]
     conversation_history = format_conversation(state["conversation_history"])
@@ -255,7 +254,6 @@ graph_builder.add_edge("coordinator", "participant_agent")
 graph_builder.add_edge("participant_agent", "summarizer")
 graph_builder.add_edge("summarizer", "coordinator")
 graph_builder.add_edge("summarizer", END)
-graph_builder.add_edge("coordinator", END)
 graph = graph_builder.compile(
     checkpointer=memory
 )

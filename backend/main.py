@@ -22,7 +22,6 @@ from src.debate.prompts_models import ContextOutput, RPEAOutput, PromptCrafterOu
 
 from src.graph import graph, get_persona_by_uuid, get_summary
 from src.debate.const_personas import CONST_PERSONAS
-from src.graph_run import config
 from langgraph.errors import GraphRecursionError
 
 import json
@@ -61,9 +60,10 @@ async def process_prompt(request: PromptRequest):
     try:
         debate_id = str(uuid.uuid4())  # Ensure debate_id is a string
 
-        # Save API keys to os variables
+        # Save API keys to os variables        
         set_ai_api_key(debate_id, decrypt(request.ai_api_key))
-        set_exa_api_key(debate_id, decrypt(request.exa_api_key))
+        if request.exa_api_key:  # Add null check for optional key
+            set_exa_api_key(debate_id, decrypt(request.exa_api_key))
 
         model = get_ai_model(debate_id)
         if model is None:
@@ -79,12 +79,14 @@ async def process_prompt(request: PromptRequest):
         context_agent = Agent(
             model=model,
             system_prompt=context_prompt,
-            result_type=ContextOutput
+            result_type=ContextOutput,
+            retries=3
         )
         
         # Process through Context Enrichment Agent
         enriched_context = await context_agent.run(request.prompt)
         print(f"Enriched context: {enriched_context.data}")
+        language = enriched_context.data.language
         
         # Save extrapolated prompt to file
         prompt_file = OUTPUT_DIR / f"debate_prompt_{debate_id}.json"
@@ -99,6 +101,7 @@ async def process_prompt(request: PromptRequest):
         with open(config_file, "w") as f:
             debate_config = DebateConfig(
                 speakers=[],
+                language=language,
                 prompt=request.prompt,
             )
             json.dump(debate_config.model_dump(), f, indent=2, default=str)
@@ -159,6 +162,8 @@ async def websocket_endpoint(websocket: WebSocket):
         with open(config_file) as f:
             config_data = json.load(f)
             debate_config = DebateConfig(**config_data)
+        
+        language = debate_config.language
             
         print(f"Loaded debate prompt: {extrapolated_prompt}")
         print(f"Loaded debate config: {debate_config}")
@@ -176,7 +181,8 @@ async def websocket_endpoint(websocket: WebSocket):
         rpea_agent = Agent(
             model=model,
             system_prompt=rpea_prompt,
-            result_type=RPEAOutput
+            result_type=RPEAOutput,
+            retries=3
         )
         
         # Generate personas
@@ -229,7 +235,8 @@ async def websocket_endpoint(websocket: WebSocket):
         prompt_crafter_agent = Agent(
             model=model,
             system_prompt=prompt_crafter_prompt,
-            result_type=PromptCrafterOutput
+            result_type=PromptCrafterOutput,
+            retries=3
         )
         
         # Generate system prompts for each debate persona - after each persona is created stream the persona to the client
@@ -266,7 +273,8 @@ async def websocket_endpoint(websocket: WebSocket):
         opening_agent = Agent(
             model=model,
             system_prompt=opening_agent_prompt,
-            result_type=OpeningOutput
+            result_type=OpeningOutput,
+            retries=3
         )   
 
         print("Opening")
@@ -290,8 +298,9 @@ async def websocket_endpoint(websocket: WebSocket):
         stan_debaty = DebateState(
             topic=extrapolated_prompt,
             participants=personas_full_list_RPEA.personas,
+            language=language,
             current_speaker_uuid="0",
-            round_number=1,
+            round_number=1,  # Initialize as integer
             conversation_history=[opening_stmt],
             comments_history=[],
             is_debate_finished=False,
@@ -300,7 +309,12 @@ async def websocket_endpoint(websocket: WebSocket):
             debate_id=debate_id
         )
         
-        async def stream_graph_updates(input_message: dict, config: dict):  
+        graph_config = {
+            "configurable": {"thread_id": "1", "checkpoint_ns": ""},
+            "recursion_limit": 3 * len(debate_personas)
+        }        
+
+        async def stream_graph_updates(input_message: dict, config: dict):
             try:          
                 current_state: dict = copy.deepcopy(input_message)
                 async for event in graph.astream(current_state, config=config):
@@ -308,7 +322,19 @@ async def websocket_endpoint(websocket: WebSocket):
                         if not state_update:
                             continue
                         try:
-                            last_statement = state_update["conversation_history"][-1]
+                            # Need to extend existing history instead of replacing
+                            if "conversation_history" in state_update:
+                                new_statements = state_update["conversation_history"]
+                                current_state["conversation_history"].extend(new_statements)
+                            else:
+                                new_statements = state_update["conversation_history"][-1]
+                                current_state["conversation_history"] = state_update["conversation_history"]
+                                
+                            # Need to update current_speaker_uuid if present
+                            if "current_speaker_uuid" in state_update:
+                                current_state["current_speaker_uuid"] = state_update["current_speaker_uuid"]
+                                
+                            last_statement = new_statements[-1]
                             persona = get_persona_by_uuid(persona_full_list, last_statement.persona_uuid)
                             if persona:
                                 name = persona.name
@@ -319,8 +345,6 @@ async def websocket_endpoint(websocket: WebSocket):
                             reply = data_to_frontend_payload(name, last_statement.content)
                             print(f"Persona {name} said: {last_statement.content}")
                             await websocket.send_json(reply)
-                            # Update current state with the new state
-                            current_state = state_update
                         except Exception as e:
                             print("Error in stream_graph_updates astream: ", e)
                             print("Full stack trace:", traceback.format_exc())
@@ -330,41 +354,44 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:  # Debate loop
             try:
-                print("Debate loop started")
+                print(f"Debate loop started")
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
-                stan_debaty["participants_queue"] = personas_uuids
-                init_state = dict(stan_debaty) 
-
+                init_state = dict(stan_debaty)
+                init_state["participants_queue"] = personas_uuids
+                current_round = init_state["round_number"]  # Track current round
+                
                 while True:  # Round loop
-                    print("Round loop started")
+                    print(f"Round loop started, round {current_round} started")
                     try:
-                        await stream_graph_updates(init_state, config)
+                        await stream_graph_updates(init_state, graph_config)
                     except GraphRecursionError:
                         print("Hit recursion limit, breaking round loop")
-                        snapshot = graph.get_state(config)
+                        snapshot = graph.get_state(graph_config)
                         break
-                    snapshot = graph.get_state(config)
+                    snapshot = graph.get_state(graph_config)
                     if not snapshot.next:
                         break
 
                 print("Round loop finished")
                 stan_debaty = DebateState(**snapshot.values)
-
+                reply = data_to_frontend_payload("Coordinator", f"finished round {current_round}")
+                await websocket.send_json(reply)
                 print("Conversation history:")
                 print(DebateStateHelper.print_conversation_history(stan_debaty))
 
                 moderator_agent = Agent(
                     model=model,
                     system_prompt=moderator_prompt,                    
-                    result_type=ModeratorOutput
+                    result_type=ModeratorOutput,
+                    retries=3
                 )
                 
                 @moderator_agent.system_prompt()
                 def current_state_of_debate() -> str:
                     return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
                 
-                moderator_result = await moderator_agent.run("Is the debate finished?")
+                moderator_result = await moderator_agent.run(f"Another round has just finished. Is the whole debate finished? Evaluate if the topic has been exhausted. Make sure there have been at least two rounds of debate and not more than 5 rounds.")
                 print(f"Moderator result: {moderator_result}")
                 # Evaluate debate status
 
@@ -401,7 +428,8 @@ async def websocket_endpoint(websocket: WebSocket):
             commentator_agent = Agent(
                 model=model,
                 system_prompt=commentator_prompt,                
-                result_type=CommentatorOutput
+                result_type=CommentatorOutput,
+                retries=3
             )
 
             @commentator_agent.system_prompt()

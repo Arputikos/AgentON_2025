@@ -358,10 +358,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 stan_debaty["participants_queue"] = personas_uuids
-                init_state = dict(stan_debaty) 
-
+                stan_debaty["round_number"] = snapshot.values["round_number"] if "snapshot" in locals() else 1  # Update round number from previous iteration
+                init_state = dict(stan_debaty)
+                
                 while True:  # Round loop
-                    print("Round loop started")
+                    print(f"Round loop started, round {stan_debaty['round_number']} started")
                     try:
                         await stream_graph_updates(init_state, graph_config)
                     except GraphRecursionError:

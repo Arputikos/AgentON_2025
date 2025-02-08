@@ -374,7 +374,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 print("Round loop finished")
                 stan_debaty = DebateState(**snapshot.values)
-
+                reply = data_to_frontend_payload("Coordinator", f"finished round {stan_debaty['round_number']}")                
+                await websocket.send_json(reply)
                 print("Conversation history:")
                 print(DebateStateHelper.print_conversation_history(stan_debaty))
 
@@ -389,7 +390,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 def current_state_of_debate() -> str:
                     return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
                 
-                moderator_result = await moderator_agent.run("Is the debate finished? Make sure there have been at least two rounds of debate.")
+                moderator_result = await moderator_agent.run(f"Round number: {stan_debaty['round_number']} has just finished. Is the whole debate finished? Evaluate if the topic has been exhausted. Make sure there have been at least two rounds of debate and not more than 5 rounds.")
                 print(f"Moderator result: {moderator_result}")
                 # Evaluate debate status
 

@@ -300,7 +300,7 @@ async def websocket_endpoint(websocket: WebSocket):
             participants=personas_full_list_RPEA.personas,
             language=language,
             current_speaker_uuid="0",
-            round_number=1,
+            round_number=1,  # Initialize as integer
             conversation_history=[opening_stmt],
             comments_history=[],
             is_debate_finished=False,
@@ -354,15 +354,15 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:  # Debate loop
             try:
-                print("Debate loop started")
+                print(f"Debate loop started")
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
-                stan_debaty["participants_queue"] = personas_uuids
-                stan_debaty["round_number"] = snapshot.values["round_number"] if "snapshot" in locals() else 1  # Update round number from previous iteration
                 init_state = dict(stan_debaty)
+                init_state["participants_queue"] = personas_uuids
+                current_round = init_state["round_number"]  # Track current round
                 
                 while True:  # Round loop
-                    print(f"Round loop started, round {stan_debaty['round_number']} started")
+                    print(f"Round loop started, round {current_round} started")
                     try:
                         await stream_graph_updates(init_state, graph_config)
                     except GraphRecursionError:
@@ -375,7 +375,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 print("Round loop finished")
                 stan_debaty = DebateState(**snapshot.values)
-                reply = data_to_frontend_payload("Coordinator", f"finished round {stan_debaty['round_number']}")                
+                reply = data_to_frontend_payload("Coordinator", f"finished round {current_round}")
                 await websocket.send_json(reply)
                 print("Conversation history:")
                 print(DebateStateHelper.print_conversation_history(stan_debaty))
@@ -391,7 +391,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 def current_state_of_debate() -> str:
                     return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
                 
-                moderator_result = await moderator_agent.run(f"Round number: {stan_debaty['round_number']} has just finished. Is the whole debate finished? Evaluate if the topic has been exhausted. Make sure there have been at least two rounds of debate and not more than 5 rounds.")
+                moderator_result = await moderator_agent.run(f"Another round has just finished. Is the whole debate finished? Evaluate if the topic has been exhausted. Make sure there have been at least two rounds of debate and not more than 5 rounds.")
                 print(f"Moderator result: {moderator_result}")
                 # Evaluate debate status
 

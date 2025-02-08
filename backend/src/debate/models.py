@@ -190,7 +190,7 @@ class DebateState(TypedDict):
     language: str
     participants: List[Persona]
     current_speaker_uuid: str  # Current uuid of the speaker of the debate
-    round_number: int  # defaults handled in implementation, not type definition
+    round_number: int  # Add explicit int type here
     conversation_history: Annotated[List[Statement], operator.add]  # Conversation history of the debate
     comments_history: List[Comment]  # Comments history of the debate
     is_debate_finished: bool  # defaults handled in implementation, not type definition

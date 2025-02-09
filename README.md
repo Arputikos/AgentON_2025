@@ -79,7 +79,7 @@ npm run dev
 
 ## Run on demo environment
 
-Alternatively, simply run the address `<in preparation>`.
+Alternatively, simply run the address [agenton-hackathon-2025.vercel.app](https://agenton-hackathon-2025.vercel.app).
 
 ## Sample debate topics
 
@@ -167,7 +167,7 @@ npm run dev
 
 ## Uruchomienie na środowisku demo
 
-Alternatywnie poprostu uruchom adres `<w przygotowaniu>`.
+Alternatywnie poprostu uruchom adres [agenton-hackathon-2025.vercel.app](https://agenton-hackathon-2025.vercel.app)..
 
 ## Przykładowe tematy debat
 

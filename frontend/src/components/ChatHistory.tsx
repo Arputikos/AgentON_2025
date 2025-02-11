@@ -2,6 +2,7 @@ import ChatMessage from './ChatMessage';
 import { useEffect, useRef, useState } from 'react';
 import Loader from './Loader';
 import { createMessageStream } from '@/lib/utils';
+import { MessageSquare } from 'lucide-react';
 
 interface ChatHistoryProps {
   messages: Array<{
@@ -79,15 +80,19 @@ export default function ChatHistory({ messages, debateFinished, onMessageStreami
   }, [messageQueue, isStreaming, onMessageStreaming]);
 
   return (
-    <div className="h-full">
-      <div className="flex items-center space-x-4 mb-8">
-        <h3 className="font-semibold text-2xl">Debate History</h3>
+    <div className="h-full flex flex-col">
+      <div className="flex flex-col items-center mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <MessageSquare className="w-6 h-6 text-blue-500" />
+          <h3 className="font-semibold text-2xl">Debate History</h3>
+        </div>
+        <p className="text-sm text-gray-600">Complete record of the debate conversation</p>
       </div>
-      <div className="border-t py-6">
-        <div className="space-y-4 h-[calc(100%-8rem)] overflow-y-auto">
+
+      <div className="border-t py-6 overflow-y-auto h-[calc(100%-8rem)]">
+        <div className="space-y-4 p-4">
           {displayedMessages.map((message) => (
             <ChatMessage
-              key={message.id}
               content={streamingMessages[message.id] || message.content}
               sender={message.sender}
               timestamp={message.timestamp}
@@ -107,9 +112,9 @@ export default function ChatHistory({ messages, debateFinished, onMessageStreami
               <Loader size="lg" color="primary" />
             </div>
           )}
-          <div ref={messagesEndRef} />
-        </div>
+        <div ref={messagesEndRef} />
       </div>
+    </div>
     </div>
   );
 }

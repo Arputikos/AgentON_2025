@@ -81,6 +81,7 @@ export function useWebsocketStream(debateId: string | null) {
         break;
 
       case 'message':
+        console.log('💬 Message received:', data.data);
         setStreamState(prev => {
           const matchingParticipant = prev.participants.find(p => 
             p.name === data.data.name

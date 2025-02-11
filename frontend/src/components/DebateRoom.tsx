@@ -29,7 +29,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
     debateFinished,
     participants,
     error: participantError,
-    messages
+    messages,
   } = useWebsocketStream(debateId);
 
   const prevParticipantsLength = useRef(0);
@@ -48,11 +48,24 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
     if (participants.length > prevParticipantsLength.current) {
       const newParticipant = participants[participants.length - 1];
       toast(newParticipant.name, showSpeakerNotification(newParticipant.name, newParticipant.borderColor));
-    } else if (participants.length === prevParticipantsLength.current && participants.length > 0) {
-      toast('All participants have joined the debate!', showDebateNotification('All participants have joined the debate!'));
+      prevParticipantsLength.current = participants.length;
     }
-    prevParticipantsLength.current = participants.length;
-  }, [participants]);
+
+    setTimeout(() => {
+      if (!isInitializing) {
+        toast('All participants have joined the debate!', showDebateNotification('All participants have joined the debate!'));
+      }
+    }, 2000);
+  }, [participants, isInitializing]);
+
+  // Get the last message from commentator, opening, or closing statement
+  const lastModeratorMessage = messages
+    .filter(msg => 
+      msg.sender === "Commentator" || 
+      msg.sender === "Opening commentator" || 
+      msg.sender === "Closing Statement"
+    )
+    .pop();
 
   return (
     <div className="h-screen w-full bg-gray-100 flex flex-col">
@@ -105,16 +118,19 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
         <div
           className="grid gap-8 h-full transition-all duration-300 ease-in-out"
           style={{
-            gridTemplateColumns: showChat ? "3fr 6fr 3fr" : "3fr 9fr",
+            gridTemplateColumns: showChat ? "2fr 8fr 4fr" : "4fr 8fr",
           }}
         >
           {/* Moderator Panel */}
-          <div className="bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out"
+          <div className="bg-white p-8 rounded-xl shadow-md h-full min-w-0 transition-transform duration-300 ease-in-out overflow-y-auto"
             style={{
               transform: showChat ? "scale(0.95)" : "scale(1)",
             }}
           >
-            <ModeratorCard />
+            <ModeratorCard 
+              message={lastModeratorMessage}
+            />
+
           </div>
 
           {/* Debate Table */}

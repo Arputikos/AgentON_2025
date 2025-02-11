@@ -93,6 +93,7 @@ export default function ChatHistory({ messages, debateFinished, onMessageStreami
         <div className="space-y-4 p-4">
           {displayedMessages.map((message) => (
             <ChatMessage
+              key={message.id}
               content={streamingMessages[message.id] || message.content}
               sender={message.sender}
               timestamp={message.timestamp}

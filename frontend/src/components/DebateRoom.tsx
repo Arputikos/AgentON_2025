@@ -10,7 +10,7 @@ import ChatHistory from '@/components/ChatHistory';
 import { useWebsocketStream } from '@/hooks/useWebsocketStream';
 import { Github } from 'lucide-react';
 import Loader from '@/components/Loader';
-import { showSpeakerNotification } from '@/lib/utils';
+import { showSpeakerNotification, showDebateNotification } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'next/navigation';
 
@@ -33,6 +33,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
   } = useWebsocketStream(debateId);
 
   const prevParticipantsLength = useRef(0);
+  const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null);
   
   // get topic from url
   useEffect(() => {
@@ -42,13 +43,13 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
     }
   }, [searchParams]);
 
-
-
   // Show notification when new participant joins - needs to be triggered from debate room 
   useEffect(() => {
     if (participants.length > prevParticipantsLength.current) {
       const newParticipant = participants[participants.length - 1];
       toast(newParticipant.name, showSpeakerNotification(newParticipant.name, newParticipant.borderColor));
+    } else if (participants.length === prevParticipantsLength.current && participants.length > 0) {
+      toast('All participants have joined the debate!', showDebateNotification('All participants have joined the debate!'));
     }
     prevParticipantsLength.current = participants.length;
   }, [participants]);
@@ -57,7 +58,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
     <div className="h-screen w-full bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-md h-24 w-full">
-        <div className="h-full px-22 max-w-[2400px] mx-auto flex items-center justify-between">
+        <div className="h-full px-4 sm:px-auto max-w-[2400px] mx-auto flex items-center justify-between">
 
             {/* Debate information container */}
             <div className="flex items-center">
@@ -136,7 +137,8 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                     role={participant.role}
                     avatar={participant.avatar}
                     position={participant.position}
-                    borderColor={participant.borderColor} 
+                    borderColor={participant.borderColor}
+                    isCurrentSpeaker={participant.name === currentSpeaker}
                   />
                 ))
               ) : (
@@ -160,7 +162,15 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                 : "translate-x-full opacity-0 invisible"
             }`}
           >
-            <ChatHistory messages={messages} debateFinished={debateFinished} isVisible={showChat} />
+            <ChatHistory 
+              messages={messages}
+              debateFinished={debateFinished}
+              onMessageStreaming={(message) => {
+                if (message) {
+                  setCurrentSpeaker(message.sender);
+                }
+              }}
+            />
           </div>
         </div>
       </main>

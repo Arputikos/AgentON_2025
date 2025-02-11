@@ -63,6 +63,24 @@ export function assignSpeakerColor(index: number): string {
 //   };
 // }
 
+export function showDebateNotification(message: string) {
+  return {
+    message: message,
+    duration: 3000,
+    position: 'top-center' as const,
+    style: {
+      background: 'rgba(0,0,0,0.2)',
+      color: '#fff',
+      borderRadius: '8px',
+      padding: '12px 24px',
+      fontSize: '1.1rem',
+      textAlign: 'center' as const,
+      maxWidth: '400px',
+      margin: '0 auto'
+    }
+  };
+}
+
 export function showSpeakerNotification(name: string, backgroundColor: string) {
   return {
     message: `${name} joined the debate!`,

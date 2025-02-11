@@ -12,10 +12,16 @@ interface ChatHistoryProps {
     borderColor?: string;
   }>;
   debateFinished: boolean;
-  isVisible: boolean;
+  onMessageStreaming: (message: {
+    id: string;
+    content: string;
+    sender: string;
+    timestamp?: string;
+    borderColor?: string;
+  } | null) => void;
 }
 
-export default function ChatHistory({ messages, debateFinished, isVisible }: ChatHistoryProps) {
+export default function ChatHistory({ messages, debateFinished, onMessageStreaming }: ChatHistoryProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [streamingMessages, setStreamingMessages] = useState<{[key: string]: string}>({});
   const [displayedMessages, setDisplayedMessages] = useState<typeof messages>([]);
@@ -43,6 +49,8 @@ export default function ChatHistory({ messages, debateFinished, isVisible }: Cha
       const currentMessage = messageQueue[0];
 
       try {
+        onMessageStreaming(currentMessage);
+
         await createMessageStream(
           currentMessage.content,
           (currentText) => {
@@ -50,7 +58,7 @@ export default function ChatHistory({ messages, debateFinished, isVisible }: Cha
               [currentMessage.id]: currentText
             });
           },
-          50 // 50ms delay
+          50
         );
 
         // After streaming completes, move message from queue to displayed
@@ -58,19 +66,17 @@ export default function ChatHistory({ messages, debateFinished, isVisible }: Cha
         setMessageQueue(prev => prev.slice(1));
         setStreamingMessages({});
         setIsStreaming(false);
+        onMessageStreaming(null);        // Reset current speaker when done
+        
       } catch (error) {
         console.error('Streaming error:', error);
         setIsStreaming(false);
+        onMessageStreaming(null);
       }
     };
 
     streamNextMessage();
-  }, [messageQueue, isStreaming]);
-
-  // Add scroll to bottom effect
-  useEffect(() => {
-    //messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [displayedMessages, streamingMessages]);
+  }, [messageQueue, isStreaming, onMessageStreaming]);
 
   return (
     <div className="h-full">

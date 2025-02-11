@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Github } from 'lucide-react';
+import { Sparkles, Github, Mail } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import Link from 'next/link';
 import { startDebate } from '@/lib/actions';
@@ -43,13 +43,20 @@ export default function Home() {
       
       <header className="fixed top-0 left-0 right-0 z-50 p-4 flex justify-end items-center">
         <div className="flex items-center gap-4 sm:gap-6 mx-4">
+          <Link 
+            href="/contact"
+            className="flex items-center gap-2 hover:text-gray-800 transition-colors"
+          >
+            <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
+          </Link>
           <a 
             href="https://github.com/Arputikos/AgentON_2025" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-2 hover:text-gray-800 transition-colors"
-          />
+          >
             <Github className="w-5 h-5 sm:w-6 sm:h-6" />
+          </a>
           <div className={`w-4 h-4 md:w-5 md:h-5 rounded-full ${
             isConnected ? 'bg-green-500' : 'bg-red-500'
           }`} />

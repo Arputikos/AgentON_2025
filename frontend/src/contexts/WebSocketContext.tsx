@@ -16,6 +16,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!socket.current) {
       console.log("Creating new WebSocket connection...");
+      console.log(process.env.NEXT_PUBLIC_BACKEND_URL_WS);
       const ws = new WebSocket(`${process.env.NEXT_PUBLIC_BACKEND_URL_WS}/debate`);
       
       ws.onopen = () => {

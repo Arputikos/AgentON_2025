@@ -89,8 +89,8 @@ export default function ChatHistory({ messages, debateFinished, onMessageStreami
         <p className="text-sm text-gray-600">Complete record of the debate conversation</p>
       </div>
 
-      <div className="border-t py-6 overflow-y-auto h-[calc(100%-8rem)]">
-        <div className="space-y-4 p-4">
+      <div className="border-t py-4 sm:py-6 md:py-4 overflow-y-auto h-[calc(100%-8rem)]">
+        <div className="space-y-3 sm:space-y-4 md:space-y-3 p-2 sm:p-4 md:p-3">
           {displayedMessages.map((message) => (
             <ChatMessage
               key={message.id}
@@ -113,9 +113,9 @@ export default function ChatHistory({ messages, debateFinished, onMessageStreami
               <Loader size="lg" color="primary" />
             </div>
           )}
+        </div>
         <div ref={messagesEndRef} />
       </div>
-    </div>
     </div>
   );
 }

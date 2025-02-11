@@ -42,16 +42,16 @@ export default function ModeratorCard({ message }: ModeratorCardProps) {
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col items-center mb-6">
-        <div className="flex items-center justify-center gap-2 mb-1">
+        <div className="flex items-center gap-3 mb-2">
           <Mic className="w-6 h-6 text-blue-500" />
-          <h3 className="font-semibold text-xl text-center">Debate Summary</h3>
+          <h3 className="font-semibold text-2xl">Debate Summary</h3>
         </div>
-        <p className="text-sm text-gray-600 text-center">Key messages from the debate coordinators</p>
+        <p className="text-sm text-gray-600">Key messages from the debate coordinators</p>
       </div>
 
       {/* Messages container */}
-      <div className="border-t py-6 overflow-y-auto h-[calc(100%-8rem)]">
-        <div className="space-y-4 p-4">
+      <div className="border-t py-4 sm:py-6 md:py-4 overflow-y-auto h-[calc(100%-8rem)]">
+        <div className="space-y-3 sm:space-y-4 md:space-y-3 p-2 sm:p-4 md:p-3">
           {message && (
             <ChatMessage
               key={message.id}

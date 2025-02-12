@@ -41,7 +41,7 @@ class ParticipantResponse(BaseModel):
     sources: Optional[List[str]] = Field(default=None, description="Sources used in the response")
 
 def get_summary(summary: CommentatorOutput) -> str:
-    return f"Key themes: {summary.key_themes}\n\nActionable takeaways: {summary.actionable_takeaways}\n\nFuture recommendations: {summary.future_recommendations}"
+    return f"Key themes: {summary.key_themes}\n\nActionable takeaways: {summary.actionable_takeaways}"
 
 def format_conversation(conversation_history: List[Statement]) -> str:
     return "\n\n".join([

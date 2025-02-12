@@ -70,4 +70,4 @@ class CommentatorOutput(BaseModel):
     """
     key_themes: str = Field(..., description="Key themes of the debate")
     actionable_takeaways: str = Field(..., description="Actionable takeaways of the debate")
-    future_recommendations: str = Field(..., description="Future recommendations of the debate")
+    

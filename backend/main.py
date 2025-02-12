@@ -308,6 +308,9 @@ async def websocket_endpoint(websocket: WebSocket):
             extrapolated_prompt=extrapolated_prompt,
             debate_id=debate_id
         )
+
+        runda_debaty: int = 1
+        print("Debate loop started")
         
         graph_config = {
             "configurable": {"thread_id": "1", "checkpoint_ns": ""},
@@ -354,31 +357,27 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:  # Debate loop
             try:
-                print(f"Debate loop started")
+                print(f"Debate round {runda_debaty} ({stan_debaty['round_number']}) started")     
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 init_state = dict(stan_debaty)
-                init_state["participants_queue"] = personas_uuids
-                current_round = init_state["round_number"]  # Track current round
+                init_state["participants_queue"] = personas_uuids                
                 
-                while True:  # Round loop
-                    print(f"Round loop started, round {current_round} started")
-                    try:
-                        await stream_graph_updates(init_state, graph_config)
-                    except GraphRecursionError:
-                        print("Hit recursion limit, breaking round loop")
-                        snapshot = graph.get_state(graph_config)
-                        break
+                try:
+                    # Single attempt at running the graph
+                    await stream_graph_updates(init_state, graph_config)
                     snapshot = graph.get_state(graph_config)
                     if not snapshot.next:
                         break
-
-                print("Round loop finished")
-                stan_debaty = DebateState(**snapshot.values)
-                reply = data_to_frontend_payload("Coordinator", f"finished round {current_round}")
-                await websocket.send_json(reply)
-                print("Conversation history:")
-                print(DebateStateHelper.print_conversation_history(stan_debaty))
+                except GraphRecursionError:
+                    print("Hit recursion limit, continuing to next round")
+                    snapshot = graph.get_state(graph_config)
+                    # Don't break here - let the loop continue to the moderator check
+                
+                stan_debaty = DebateState(**snapshot.values)                            
+                # print("Conversation history:")
+                # print(DebateStateHelper.print_conversation_history(stan_debaty))
+                print(f"Conversation history length: {DebateStateHelper.get_count_of_conversation_history(stan_debaty)}")
 
                 moderator_agent = Agent(
                     model=model,
@@ -391,9 +390,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 def current_state_of_debate() -> str:
                     return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
                 
-                moderator_result = await moderator_agent.run(f"Another round has just finished. Is the whole debate finished? Evaluate if the topic has been exhausted. Make sure there have been at least two rounds of debate and not more than 5 rounds.")
+                user_prompt = f"""Round {runda_debaty} has just finished. 
+                Is the whole debate finished? Evaluate if the topic has been exhausted. 
+                Make sure there have been at least 2 rounds of debate and not more than 5 rounds."""
+                moderator_result = await moderator_agent.run(user_prompt)
                 print(f"Moderator result: {moderator_result}")
-                # Evaluate debate status
 
                 if moderator_result.data.debate_status == "continue":
                     next_focus: Statement = Statement(
@@ -402,7 +403,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         persona_uuid=str(moderator_persona.uuid),
                         timestamp=datetime.now()
                     )
-                    stan_debaty["round_number"] += 1
+                    runda_debaty += 1
+                    stan_debaty["round_number"] = runda_debaty
                     stan_debaty["conversation_history"].append(next_focus)
                     stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = False

@@ -213,6 +213,10 @@ class DebateStateHelper:
     @staticmethod
     def print_conversation_history(state: DebateState) -> str:
         return "\n".join([f"{statement.timestamp} - {statement.persona_uuid}: {statement.content}" for statement in state["conversation_history"]])
+
+    @staticmethod
+    def get_count_of_conversation_history(state: DebateState) -> int:
+        return len(state["conversation_history"])    
     
     @staticmethod
     def get_participants(state: DebateState) -> str:

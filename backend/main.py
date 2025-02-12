@@ -362,23 +362,24 @@ async def websocket_endpoint(websocket: WebSocket):
                 init_state = dict(stan_debaty)
                 init_state["participants_queue"] = personas_uuids                
                 
-                while True:  # Round loop
-                    print(f"Round loop started, round {runda_debaty} started")
-                    try:
-                        await stream_graph_updates(init_state, graph_config)
-                    except GraphRecursionError:
-                        print("Hit recursion limit, breaking round loop")
-                        snapshot = graph.get_state(graph_config)
-                        break
+                try:
+                    # Single attempt at running the graph
+                    await stream_graph_updates(init_state, graph_config)
                     snapshot = graph.get_state(graph_config)
                     if not snapshot.next:
                         break
-
-                print("Round loop finished")
+                except GraphRecursionError:
+                    print("Hit recursion limit, continuing to next round")
+                    snapshot = graph.get_state(graph_config)
+                    # Don't break here - let the loop continue to the moderator check
+                
                 stan_debaty = DebateState(**snapshot.values)                            
-                print("Conversation history:")
-                print(DebateStateHelper.print_conversation_history(stan_debaty))
+                # print("Conversation history:")
+                # print(DebateStateHelper.print_conversation_history(stan_debaty))
+                print(f"Conversation history length: {DebateStateHelper.get_count_of_conversation_history(stan_debaty)}")
+                print(f"Increasing round number to {runda_debaty + 1}")
                 runda_debaty += 1
+                print(f"Round {runda_debaty} started")
 
                 moderator_agent = Agent(
                     model=model,
@@ -393,7 +394,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 moderator_result = await moderator_agent.run(f"Round {runda_debaty} has just finished. Is the whole debate finished? Evaluate if the topic has been exhausted. Make sure there have been at least 2 rounds of debate and not more than 5 rounds.")
                 print(f"Moderator result: {moderator_result}")
-                # Evaluate debate status
 
                 if moderator_result.data.debate_status == "continue":
                     next_focus: Statement = Statement(

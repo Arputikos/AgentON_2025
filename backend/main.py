@@ -310,6 +310,7 @@ async def websocket_endpoint(websocket: WebSocket):
         )
 
         runda_debaty: int = 1
+        print(f"Debate loop started")   
         
         graph_config = {
             "configurable": {"thread_id": "1", "checkpoint_ns": ""},
@@ -356,7 +357,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:  # Debate loop
             try:
-                print(f"Debate loop started")                
+                print(f"Debate round {runda_debaty} ({stan_debaty['round_number']}) started")             
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 init_state = dict(stan_debaty)
@@ -377,9 +378,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 # print("Conversation history:")
                 # print(DebateStateHelper.print_conversation_history(stan_debaty))
                 print(f"Conversation history length: {DebateStateHelper.get_count_of_conversation_history(stan_debaty)}")
-                print(f"Increasing round number to {runda_debaty + 1}")
-                runda_debaty += 1
-                print(f"Round {runda_debaty} started")
 
                 moderator_agent = Agent(
                     model=model,
@@ -402,7 +400,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         persona_uuid=str(moderator_persona.uuid),
                         timestamp=datetime.now()
                     )
-                    stan_debaty["round_number"] += 1
+                    runda_debaty += 1
+                    stan_debaty["round_number"] = runda_debaty
                     stan_debaty["conversation_history"].append(next_focus)
                     stan_debaty["current_speaker_uuid"] = "0" 
                     stan_debaty["is_debate_finished"] = False

@@ -354,7 +354,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:  # Debate loop
             try:
-                print(f"Debate loop started")
+                print(f"Debate loop started")                
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 init_state = dict(stan_debaty)
@@ -379,6 +379,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_json(reply)
                 print("Conversation history:")
                 print(DebateStateHelper.print_conversation_history(stan_debaty))
+                DebateStateHelper.increment_round_number(stan_debaty)
 
                 moderator_agent = Agent(
                     model=model,

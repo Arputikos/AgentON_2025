@@ -1,5 +1,5 @@
 import TeamMember from '@/components/TeamMember';
-import { Mail, Calendar, ArrowLeft } from 'lucide-react';
+import { Info, Calendar, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import krystianAvatar from '../../static/krystian_avatar.jpeg';
 import bartoszAvatar from '../../static/bartek_avatar.jpeg';
@@ -67,7 +67,7 @@ export default function ContactPage() {
           </p>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 text-gray-600">
-              <Mail className="w-5 h-5 text-gray-500" />
+              <Info className="w-5 h-5 text-gray-500" />
               <a href="mailto:debate.arena.home@gmail.com" className="hover:text-purple-600 transition-colors">
                 debate.arena.home@gmail.com
               </a>

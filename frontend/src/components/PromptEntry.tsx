@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Github, Mail } from 'lucide-react';
+import { Sparkles, Github, Info } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import Link from 'next/link';
 import { startDebate } from '@/lib/actions';
@@ -47,7 +47,7 @@ export default function Home() {
             href="/contact"
             className="flex items-center gap-2 hover:text-gray-800 transition-colors"
           >
-            <Mail className="w-5 h-5 sm:w-6 sm:h-6" />
+            <Info className="w-5 h-5 sm:w-6 sm:h-6" />
           </Link>
           <a 
             href="https://github.com/Arputikos/AgentON_2025" 

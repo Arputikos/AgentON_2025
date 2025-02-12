@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Github } from 'lucide-react';
+import { ArrowLeft, Info, Github } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import SpeakerCard from '@/components/SpeakerCard';
 import ModeratorCard from '@/components/ModeratorCard';
@@ -98,7 +98,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
                 href="/contact"
                 className="flex items-center p-1 hover:text-gray-800 transition-colors"
               >
-                <Mail className="w-5 h-5 sm:w-8 sm:h-8" />
+                <Info className="w-5 h-5 sm:w-8 sm:h-8" />
               </Link>
               <a 
                 href="https://github.com/Arputikos/AgentON_2025" 

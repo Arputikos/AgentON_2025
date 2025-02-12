@@ -216,7 +216,7 @@ class DebateStateHelper:
 
     @staticmethod
     def get_count_of_conversation_history(state: DebateState) -> int:
-        return len(state["conversation_history"])    
+        return len(state["conversation_history"])
     
     @staticmethod
     def get_participants(state: DebateState) -> str:

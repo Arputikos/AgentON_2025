@@ -310,7 +310,7 @@ async def websocket_endpoint(websocket: WebSocket):
         )
 
         runda_debaty: int = 1
-        print(f"Debate loop started")   
+        print("Debate loop started")
         
         graph_config = {
             "configurable": {"thread_id": "1", "checkpoint_ns": ""},
@@ -357,7 +357,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:  # Debate loop
             try:
-                print(f"Debate round {runda_debaty} ({stan_debaty['round_number']}) started")             
+                print(f"Debate round {runda_debaty} ({stan_debaty['round_number']}) started")     
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 init_state = dict(stan_debaty)
@@ -390,7 +390,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 def current_state_of_debate() -> str:
                     return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
                 
-                moderator_result = await moderator_agent.run(f"Round {runda_debaty} has just finished. Is the whole debate finished? Evaluate if the topic has been exhausted. Make sure there have been at least 2 rounds of debate and not more than 5 rounds.")
+                user_prompt = f"""Round {runda_debaty} has just finished. 
+                Is the whole debate finished? Evaluate if the topic has been exhausted. 
+                Make sure there have been at least 2 rounds of debate and not more than 5 rounds."""
+                moderator_result = await moderator_agent.run(user_prompt)
                 print(f"Moderator result: {moderator_result}")
 
                 if moderator_result.data.debate_status == "continue":

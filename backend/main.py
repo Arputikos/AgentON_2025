@@ -308,6 +308,8 @@ async def websocket_endpoint(websocket: WebSocket):
             extrapolated_prompt=extrapolated_prompt,
             debate_id=debate_id
         )
+
+        runda_debaty: int = 1
         
         graph_config = {
             "configurable": {"thread_id": "1", "checkpoint_ns": ""},
@@ -358,11 +360,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 personas_uuids = [persona.uuid for persona in debate_personas]
                 random.shuffle(personas_uuids)
                 init_state = dict(stan_debaty)
-                init_state["participants_queue"] = personas_uuids
-                current_round = init_state["round_number"]  # Track current round
+                init_state["participants_queue"] = personas_uuids                
                 
                 while True:  # Round loop
-                    print(f"Round loop started, round {current_round} started")
+                    print(f"Round loop started, round {runda_debaty} started")
                     try:
                         await stream_graph_updates(init_state, graph_config)
                     except GraphRecursionError:
@@ -374,12 +375,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         break
 
                 print("Round loop finished")
-                stan_debaty = DebateState(**snapshot.values)
-                reply = data_to_frontend_payload("Coordinator", f"finished round {current_round}")
-                await websocket.send_json(reply)
+                stan_debaty = DebateState(**snapshot.values)                            
                 print("Conversation history:")
                 print(DebateStateHelper.print_conversation_history(stan_debaty))
-                DebateStateHelper.increment_round_number(stan_debaty)
+                runda_debaty += 1
 
                 moderator_agent = Agent(
                     model=model,

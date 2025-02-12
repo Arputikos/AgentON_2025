@@ -201,11 +201,6 @@ class DebateStateHelper:
     """
     Helper class for DebateState.
     """
-    @staticmethod
-    def increment_round_number(state: DebateState) -> None:
-        if not isinstance(state.get("round_number"), int):
-            raise ValueError("round_number must be an integer")
-        state["round_number"] += 1
         
     @staticmethod
     def get_topic(state: DebateState) -> str:

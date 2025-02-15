@@ -83,17 +83,18 @@ def save_to_pdf(stan_debaty: DebateState) -> Path:
     ]
 
     for persona in stan_debaty['participants']:
-        md_header.extend([
-            f"### {persona.name}\n",
-            f"**Title**: {persona.title or 'N/A'}\n",
-            f"**Description**: {persona.description}\n",
-            f"**Personality**: {persona.personality or 'N/A'}\n",
-            f"**Expertise**: {', '.join(persona.expertise) if persona.expertise else 'N/A'}\n",
-            f"**Attitude**: {persona.attitude or 'N/A'}\n",
-            f"**Background**: {persona.background or 'N/A'}\n",
-            f"**Debate Style**: {persona.debate_style or 'N/A'}\n",
-            "\n"
-        ])
+        if persona.name not in ["Moderator", "Opening", "Commentator", "Coordinator"]:
+            md_header.extend([
+                f"### {persona.name}\n",
+                f"**Title**: {persona.title or 'N/A'}\n",
+                f"**Description**: {persona.description}\n",
+                f"**Personality**: {persona.personality or 'N/A'}\n",
+                f"**Expertise**: {', '.join(persona.expertise) if persona.expertise else 'N/A'}\n",
+                f"**Attitude**: {persona.attitude or 'N/A'}\n",
+                f"**Background**: {persona.background or 'N/A'}\n",
+                f"**Debate Style**: {persona.debate_style or 'N/A'}\n",
+                "\n"
+            ])
 
     # Create lookup dictionary for personas
     persona_lookup = {p.uuid: p.name for p in stan_debaty['participants']}

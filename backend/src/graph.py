@@ -23,9 +23,6 @@ from pydantic import BaseModel, Field
 from src.tools import websearch
 from src.debate.const_personas import COMMENTATOR_PERSONA, COORDINATOR_PERSONA
 
-# Personas
-# debate_personas = [COMMENTATOR_PERSONA, COORDINATOR_PERSONA]
-
 class DebateContext(BaseModel):
     topic: str
     participants: List[dict]
@@ -109,11 +106,14 @@ Analyze the latest developments in this debate round, focusing on:
             persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
-    if current_speaker_no >= len(state["participants_queue"]):
+    
+    if current_speaker_no >= len(state["participants_queue"]) - 1:
+        print("All participants have spoken, ending debate round")
         return Command(
             update={"conversation_history": [statement]},
             goto=END
         )    
+    
     return Command(
         update={"conversation_history": [statement]},
         goto="coordinator"
@@ -122,7 +122,7 @@ Analyze the latest developments in this debate round, focusing on:
 async def coordinator(state: DebateState) -> Command:
     current_speaker_no = int(state["current_speaker_uuid"])
     if current_speaker_no >= len(state["participants_queue"]):
-        print("All participants have spoken, skipping coordinator, ending round")
+        print("All participants have spoken, ending debate round")
         return Command(goto=END)
     
     conversation_history = state["conversation_history"]

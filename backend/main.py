@@ -381,7 +381,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         graph_config = {
             "configurable": {"thread_id": "1", "checkpoint_ns": ""},
-            "recursion_limit": 3 * len(debate_personas)
+            "recursion_limit": 3 * len(debate_personas) + 1
         }        
 
         async def stream_graph_updates(input_message: dict, config: dict):

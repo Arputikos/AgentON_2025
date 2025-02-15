@@ -76,14 +76,30 @@ def save_to_pdf(stan_debaty: DebateState) -> Path:
     md_header = [
         "# Debate Arena",
         f"\n## Debate Topic",
-        f"{stan_debaty['topic']}"
+        f"{stan_debaty['topic']}",
+        f"\n### Enriched Topic",
+        f"{stan_debaty['extrapolated_prompt']}",
+        f"\n## Participants",
     ]
 
-    md_content = ["\n## Debate Content\n"]
+    for persona in stan_debaty['participants']:
+        md_header.extend([
+            f"### {persona.name}",
+            f"**Title**: {persona.title or 'N/A'}",
+            f"**Description**: {persona.description}",
+            f"**Personality**: {persona.personality or 'N/A'}",
+            f"**Expertise**: {', '.join(persona.expertise) if persona.expertise else 'N/A'}",
+            f"**Attitude**: {persona.attitude or 'N/A'}",
+            f"**Background**: {persona.background or 'N/A'}",
+            f"**Debate Style**: {persona.debate_style or 'N/A'}",
+            "\n"
+        ])
 
     # Create lookup dictionary for personas
     persona_lookup = {p.uuid: p.name for p in stan_debaty['participants']}
     persona_lookup["Debate Summary"] = "Debate Summary"
+
+    md_content = ["\n## Debate Content\n"]
 
     # Add each statement with speaker attribution
     for statement in stan_debaty['conversation_history']:
@@ -512,12 +528,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 result_type=CommentatorOutput,
                 retries=3
             )
-
-            @commentator_agent.system_prompt()
-            def current_state_of_debate() -> str:
-                return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
             
-            commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.")
+            final_synthesis_prompt = f""" You are the final commentator of the debate. Provide the Final Synthesis. 
+            Debate topic: {topic} 
+            Enriched prompt: {extrapolated_prompt}             
+            History of conversation: {DebateStateHelper.print_conversation_history(stan_debaty)}"""
+            commentator_result = await commentator_agent.run(final_synthesis_prompt)
 
             final_synthesis: Statement = Statement(
                 uuid=str(uuid.uuid4()),

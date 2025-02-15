@@ -200,6 +200,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
           >
             <ModeratorCard 
               message={lastModeratorMessage}
+              debateFinished={debateFinished}
             />
           </div>
 

@@ -11,9 +11,10 @@ interface ModeratorCardProps {
     timestamp?: string;
     borderColor?: string;
   };
+  debateFinished: boolean;
 }
 
-export default function ModeratorCard({ message }: ModeratorCardProps) {
+export default function ModeratorCard({ message, debateFinished }: ModeratorCardProps) {
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -67,9 +68,16 @@ export default function ModeratorCard({ message }: ModeratorCardProps) {
       
       {/* Download button */}
       <div className="border-t mt-auto p-4 flex justify-center">
-        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400 to-indigo-400 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity duration-200">
+        <button 
+          disabled={!debateFinished}
+          className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400 to-indigo-400 text-white font-semibold rounded-lg transition-all duration-200 ${
+            !debateFinished 
+              ? 'opacity-50 cursor-not-allowed' 
+              : 'hover:opacity-90'
+          }`}
+        >
           <FileText className="w-5 h-5" />
-          Download Debate Summary
+          {debateFinished ? 'Download Debate Summary' : 'Debate in Progress...'}
         </button>
       </div>
     </div>

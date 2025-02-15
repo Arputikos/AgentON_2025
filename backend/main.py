@@ -76,7 +76,7 @@ def save_to_pdf(stan_debaty: DebateState) -> Path:
     # Initialize markdown content with extrapolated prompt details
     md_header = [
         "# Debate Arena",
-        f"\n## Original Prompt",
+        f"\n## Debate Topic",
         f"{stan_debaty['topic']}"
     ]
 
@@ -84,6 +84,7 @@ def save_to_pdf(stan_debaty: DebateState) -> Path:
 
     # Create lookup dictionary for personas
     persona_lookup = {p.uuid: p.name for p in stan_debaty['participants']}
+    persona_lookup["Debate Summary"] = "Debate Summary"
 
     # Add each statement with speaker attribution
     for statement in stan_debaty['conversation_history']:
@@ -354,7 +355,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         opening_stmt: Statement = Statement(
             uuid=str(uuid.uuid4()),
-            content=f"Opening statement:{opening_result.data.opening}\n Topic introduction:{opening_result.data.topic_introduction}",
+            content=f"**Opening statement**:{opening_result.data.opening}\n\n**Topic introduction**:{opening_result.data.topic_introduction}",
             persona_uuid=str(opening_persona.uuid),
             timestamp=datetime.now()
         )
@@ -517,7 +518,7 @@ async def websocket_endpoint(websocket: WebSocket):
             final_synthesis: Statement = Statement(
                 uuid=str(uuid.uuid4()),
                 content=get_summary(commentator_result.data),
-                persona_uuid=str(uuid.uuid4()),
+                persona_uuid="Debate Summary",
                 timestamp=datetime.now()
             )
 
@@ -543,7 +544,9 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.close()
         if stan_debaty:
             save_to_pdf(stan_debaty)
-
+    print("Debate loop ended")
+    exit(0)
+    
 @app.get("/get_pdf/{debate_id}")
 async def get_pdf(debate_id: str):
     """

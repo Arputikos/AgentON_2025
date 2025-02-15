@@ -1,7 +1,9 @@
 import { Mic, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createMessageStream } from '@/lib/utils';
+import { fetchDebatePDF } from '@/lib/actions';
 import ChatMessage from './ChatMessage';
+import toast from 'react-hot-toast';
 
 interface ModeratorCardProps {
   message?: {
@@ -12,11 +14,13 @@ interface ModeratorCardProps {
     borderColor?: string;
   };
   debateFinished: boolean;
+  debateId: string;
 }
 
-export default function ModeratorCard({ message, debateFinished }: ModeratorCardProps) {
+export default function ModeratorCard({ message, debateFinished, debateId }: ModeratorCardProps) {
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (!message || isStreaming) return;
@@ -39,6 +43,33 @@ export default function ModeratorCard({ message, debateFinished }: ModeratorCard
 
     streamMessage();
   }, [message]);
+
+  const handleDownload = async () => {
+    if (!debateFinished || isDownloading) return;
+    
+    setIsDownloading(true);
+    try {
+      const pdfBuffer = await fetchDebatePDF(debateId);
+      
+      // Convert buffer to blob
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `debate_${debateId.replace(/['"]/g, '')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast.success('Debate summary downloaded successfully!');
+    } catch (error) {
+      toast.error('Failed to download debate summary');
+      console.error('Download error:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -69,15 +100,20 @@ export default function ModeratorCard({ message, debateFinished }: ModeratorCard
       {/* Download button */}
       <div className="border-t mt-auto p-4 flex justify-center">
         <button 
-          disabled={!debateFinished}
-          className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400 to-indigo-400 text-white font-semibold rounded-lg transition-all duration-200 ${
-            !debateFinished 
+          onClick={handleDownload}
+          disabled={!debateFinished || isDownloading}
+          className={`flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-purple-400 to-indigo-400 text-white font-semibold rounded-lg transition-all duration-200 text-lg ${
+            !debateFinished || isDownloading
               ? 'opacity-50 cursor-not-allowed' 
               : 'hover:opacity-90'
           }`}
         >
-          <FileText className="w-5 h-5" />
-          {debateFinished ? 'Download Debate Summary' : 'Debate in Progress...'}
+          <FileText className="w-6 h-6" />
+          {isDownloading 
+            ? 'Downloading...' 
+            : debateFinished 
+              ? 'Download Debate Summary' 
+              : 'Debate in Progress...'}
         </button>
       </div>
     </div>

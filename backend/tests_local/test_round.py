@@ -161,12 +161,7 @@ async def test_debate_round():
         comments_history=[],
         is_debate_finished=False,
         participants_queue=personas_uuids,
-        extrapolated_prompt=ExtrapolatedPrompt(
-            prompt="Test prompt",
-            topic="Test prompt",
-            context="Test context",
-            suggested_participants=[]
-        ),
+        extrapolated_prompt="Test enriched prompt",
         debate_id=str(uuid4())
     )
 

@@ -82,13 +82,13 @@ async def summarizer(state: DebateState) -> Command:
     
     commentator_agent = Agent(
         model=model,
-        system_prompt=commentator_prompt,
-        deps_type=ExtrapolatedPrompt,
+        system_prompt=commentator_prompt,        
         result_type=CommentatorOutput
     )
     
     context = f"""Round {state.get('round_number', 1)}
 Topic: {state['topic']}
+Extended prompt: {state['extrapolated_prompt']}
 
 Recent conversation:
 {formatted_history}
@@ -98,7 +98,7 @@ Analyze the latest developments in this debate round, focusing on:
 2. Key points of agreement or disagreement
 3. The evolution of the discussion from previous rounds"""
 
-    summary = await commentator_agent.run(context, deps=state["extrapolated_prompt"])
+    summary = await commentator_agent.run(context)
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
@@ -132,7 +132,7 @@ async def coordinator(state: DebateState) -> Command:
         raise ValueError(f"No persona found with UUID: {next_speaker_uuid}")
     next_speaker_name = next_speaker.name
     context_conversation = format_conversation(conversation_history)
-    context = f'<task>Lead the debate. Always react to last message in the conversation! Direct your next question to {next_speaker_name}.</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
+    context = f'<task>Lead the debate. Always react to last message in the conversation! Direct your next question to {next_speaker_name}.</task><context>Original topic of the debate: \n# **{state["topic"]}**\n\n Extended prompt: \n# **{state["extrapolated_prompt"]}**\n\n History of conversation: ```{context_conversation}.</context>```'
 
     model = get_ai_model(state["debate_id"])
     if model is None:

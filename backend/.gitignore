@@ -176,3 +176,6 @@ cython_debug/
 
 # ignore output folder
 output/*
+
+# local files
+md/

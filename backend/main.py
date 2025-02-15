@@ -379,9 +379,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 # print(DebateStateHelper.print_conversation_history(stan_debaty))
                 print(f"Conversation history length: {DebateStateHelper.get_count_of_conversation_history(stan_debaty)}")
 
+                # Decide if the debate is finished or not
+                if runda_debaty >= global_settings.MAX_ROUNDS:
+                    stan_debaty["current_speaker_uuid"] = "0"
+                    stan_debaty["is_debate_finished"] = True
+                    break
+
+                # If the debate is not finished, let the moderator decide if it should continue or not
                 moderator_agent = Agent(
                     model=model,
-                    system_prompt=moderator_prompt,                    
+                    system_prompt=moderator_prompt,                  
                     result_type=ModeratorOutput,
                     retries=3
                 )

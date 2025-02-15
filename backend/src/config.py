@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     ANTHROPIC_MODEL_NAME: str = "claude-3-5-sonnet-20241022"
     OPENAI_API_KEY: str = ""
     DEEPSEEK_API_KEY: str = ""
-    MAX_ROUNDS: int = 3
+    MAX_ROUNDS: int = 1
     
     model_config = {
         "env_file": "../.env",

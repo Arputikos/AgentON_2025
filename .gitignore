@@ -6,3 +6,6 @@ output/
 package-lock.json
 **/bun.lockb
 .cursorrules
+
+# local files
+md/

@@ -41,7 +41,7 @@ class ParticipantResponse(BaseModel):
     sources: Optional[List[str]] = Field(default=None, description="Sources used in the response")
 
 def get_summary(summary: CommentatorOutput) -> str:
-    return f"Key themes: {summary.key_themes}\n\nActionable takeaways: {summary.actionable_takeaways}"
+    return f"**Key themes**: {summary.key_themes}\n\n**Actionable takeaways**: {summary.actionable_takeaways}"
 
 def format_conversation(conversation_history: List[Statement]) -> str:
     return "\n\n".join([
@@ -206,8 +206,7 @@ async def participant_agent(state: DebateState):
                     )
                     results = await websearch(search_query)
                     return SearchToolResponse(web_contents=results)
-                except Exception as e:
-                    print(f"Error searching: {e}")
+                except Exception as e:                    
                     return SearchToolResponse(web_contents=[])
         else:
             print("Exa key not found - skipping search tool")

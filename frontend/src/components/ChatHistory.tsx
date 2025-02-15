@@ -4,80 +4,32 @@ import Loader from './Loader';
 import { createMessageStream } from '@/lib/utils';
 import { MessageSquare } from 'lucide-react';
 
-interface ChatHistoryProps {
-  messages: Array<{
-    id: string;
-    content: string;
-    sender: string;
-    timestamp?: string;
-    borderColor?: string;
-  }>;
-  debateFinished: boolean;
-  onMessageStreaming: (message: {
-    id: string;
-    content: string;
-    sender: string;
-    timestamp?: string;
-    borderColor?: string;
-  } | null) => void;
+interface Message {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp?: string;
+  borderColor?: string;
 }
 
-export default function ChatHistory({ messages, debateFinished, onMessageStreaming }: ChatHistoryProps) {
+interface ChatHistoryProps {
+  messages: Message[];
+  debateFinished: boolean;
+  streamingMessages: {[key: string]: string};
+  displayedMessages: Message[];
+  messageQueue: Message[];
+  isStreaming: boolean;
+}
+
+export default function ChatHistory({ 
+  messages, 
+  debateFinished, 
+  streamingMessages,
+  displayedMessages,
+  messageQueue,
+  isStreaming 
+}: ChatHistoryProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [streamingMessages, setStreamingMessages] = useState<{[key: string]: string}>({});
-  const [displayedMessages, setDisplayedMessages] = useState<typeof messages>([]);
-  const [messageQueue, setMessageQueue] = useState<typeof messages>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
-
-  // Add incoming messages to queue only
-  useEffect(() => {
-    const newMessages = messages.filter(
-      msg => !messageQueue.some(qMsg => qMsg.id === msg.id) && 
-            !displayedMessages.some(dMsg => dMsg.id === msg.id)
-    );
-    
-    if (newMessages.length > 0) {
-      setMessageQueue(prev => [...prev, ...newMessages]);
-    }
-  }, [messages, messageQueue, displayedMessages]);
-
-  // Stream messages one by one
-  useEffect(() => {
-    const streamNextMessage = async () => {
-      if (messageQueue.length === 0 || isStreaming) return;
-
-      setIsStreaming(true);
-      const currentMessage = messageQueue[0];
-
-      try {
-        onMessageStreaming(currentMessage);
-
-        await createMessageStream(
-          currentMessage.content,
-          (currentText) => {
-            setStreamingMessages({
-              [currentMessage.id]: currentText
-            });
-          },
-          50
-        );
-
-        // After streaming completes, move message from queue to displayed
-        setDisplayedMessages(prev => [...prev, currentMessage]);
-        setMessageQueue(prev => prev.slice(1));
-        setStreamingMessages({});
-        setIsStreaming(false);
-        onMessageStreaming(null);        // Reset current speaker when done
-        
-      } catch (error) {
-        console.error('Streaming error:', error);
-        setIsStreaming(false);
-        onMessageStreaming(null);
-      }
-    };
-
-    streamNextMessage();
-  }, [messageQueue, isStreaming, onMessageStreaming]);
 
   return (
     <div className="h-full flex flex-col">

@@ -9,9 +9,18 @@ import ModeratorCard from '@/components/ModeratorCard';
 import ChatHistory from '@/components/ChatHistory';
 import { useWebsocketStream } from '@/hooks/useWebsocketStream';
 import Loader from '@/components/Loader';
-import { showSpeakerNotification, showDebateNotification } from '@/lib/utils';
+import { showSpeakerNotification, showDebateNotification, createMessageStream } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { useSearchParams } from 'next/navigation';
+
+// Define Message type to avoid 'typeof messages' issues
+interface Message {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp?: string;
+  borderColor?: string;
+}
 
 interface DebateRoomProps {
   debateId: string | null;
@@ -33,6 +42,10 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
 
   const prevParticipantsLength = useRef(0);
   const [currentSpeaker, setCurrentSpeaker] = useState<string | null>(null);
+  const [streamingMessages, setStreamingMessages] = useState<{[key: string]: string}>({});
+  const [displayedMessages, setDisplayedMessages] = useState<Message[]>([]);
+  const [messageQueue, setMessageQueue] = useState<Message[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
   
   // get topic from url
   useEffect(() => {
@@ -56,6 +69,58 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
       }
     }, 2000);
   }, [participants, isInitializing]);
+
+  // Add incoming messages to queue only
+  useEffect(() => {
+    const newMessages = messages.filter(
+      msg => !messageQueue.some(qMsg => qMsg.id === msg.id) && 
+            !displayedMessages.some(dMsg => dMsg.id === msg.id)
+    );
+    
+    if (newMessages.length > 0) {
+      setMessageQueue(prev => [...prev, ...newMessages]);
+    }
+  }, [messages, messageQueue, displayedMessages]);
+
+  // Stream messages one by one
+  useEffect(() => {
+    const streamNextMessage = async () => {
+      if (messageQueue.length === 0 || isStreaming) return;
+
+      setIsStreaming(true);
+      const currentMessage = messageQueue[0];
+
+      try {
+        if (currentMessage) {
+          setCurrentSpeaker(currentMessage.sender);
+        }
+
+        await createMessageStream(
+          currentMessage.content,
+          (currentText) => {
+            setStreamingMessages({
+              [currentMessage.id]: currentText
+            });
+          },
+          50
+        );
+
+        // After streaming completes, move message from queue to displayed
+        setDisplayedMessages(prev => [...prev, currentMessage]);
+        setMessageQueue(prev => prev.slice(1));
+        setStreamingMessages({});
+        setIsStreaming(false);
+        setCurrentSpeaker(null);        // Reset current speaker when done
+        
+      } catch (error) {
+        console.error('Streaming error:', error);
+        setIsStreaming(false);
+        setCurrentSpeaker(null);
+      }
+    };
+
+    streamNextMessage();
+  }, [messageQueue, isStreaming]);
 
   // Get the last message from commentator, opening, or closing statement
   const lastModeratorMessage = messages
@@ -190,11 +255,10 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
               <ChatHistory 
                 messages={messages}
                 debateFinished={debateFinished}
-                onMessageStreaming={(message) => {
-                  if (message) {
-                    setCurrentSpeaker(message.sender);
-                  }
-                }}
+                streamingMessages={streamingMessages}
+                displayedMessages={displayedMessages}
+                messageQueue={messageQueue}
+                isStreaming={isStreaming}
               />
             </div>
           )}

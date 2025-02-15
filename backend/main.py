@@ -35,6 +35,7 @@ from typing import List
 import random
 from fastapi import HTTPException
 import traceback
+import asyncio
 
 app = FastAPI()
 
@@ -262,11 +263,24 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # Add before RPEA agent execution
         print("\n=== Starting RPEA Agent ===")
-        print(f"Flat extrapolated prompt being sent to RPEA:\n{flat_extrapolated_prompt}")
+
+        # Convert the extrapolated prompt to a proper JSON structure
+        extrapolated_prompt_dict = {
+            "enriched_input": extrapolated_prompt.get("enriched_input"),
+            "layered_scope": extrapolated_prompt.get("layered_scope"),
+            "dynamic_functionalities": extrapolated_prompt.get("dynamic_functionalities"),
+            "modular_components": extrapolated_prompt.get("modular_components"),
+            "deep_dive_modules": extrapolated_prompt.get("deep_dive_modules"),
+            "language": extrapolated_prompt.get("language")
+        }
 
         try:
+            # Convert to JSON string
+            formatted_prompt = json.dumps(extrapolated_prompt_dict, indent=2)
+            print(f"Formatted prompt being sent to RPEA:\n{formatted_prompt}")
+            
             # Generate personas
-            personas_result = await rpea_agent.run(flat_extrapolated_prompt)
+            personas_result = await rpea_agent.run(formatted_prompt)
             print(f"\nRPEA Agent response:\n{json.dumps(personas_result.data.model_dump(), indent=2)}")
             # full list of personas, including commentator, coordinator, moderator and opening; RPEAOutput object
             personas_full_list_RPEA = personas_result.data
@@ -322,6 +336,7 @@ async def websocket_endpoint(websocket: WebSocket):
         # Add before Prompt Crafter execution
         print("\n=== Starting Prompt Crafter Agent ===")
         print(f"Model being used: {model.model_name}")
+        print(f"API key status: {'Set' if get_ai_api_key(debate_id) else 'Not set'}")
         print(f"Prompt crafter system prompt: {prompt_crafter_prompt}")
 
         # Create the Prompt Crafter Agent with logging
@@ -345,19 +360,45 @@ async def websocket_endpoint(websocket: WebSocket):
         for persona in debate_personas:
             try:
                 print(f"\n=== Starting prompt craft for {persona.name} ===")
-                persona_data = persona.print_persona_as_json()
-                print(f"Persona data being sent to prompt crafter:\n{json.dumps(persona_data, indent=2)}")
+                # Convert persona data to a string representation instead of raw JSON
+                persona_data = (
+                    f"Create a system prompt for an AI agent representing this persona:\n\n"
+                    f"Name: {persona.name}\n"
+                    f"Title: {persona.title}\n"
+                    f"Description: {persona.description}\n"
+                    f"Personality: {persona.personality}\n"
+                    f"Expertise: {', '.join(persona.expertise)}\n"
+                    f"Attitude: {persona.attitude}\n"
+                    f"Background: {persona.background}\n"
+                    f"Debate style: {persona.debate_style}"
+                )
+                print(f"Persona data being sent to prompt crafter:\n{persona_data}")
                 
                 try:
-                    prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
-                    print(f"Raw prompt crafter response: {prompt_result}")
-                    print(f"Prompt crafter response data:\n{json.dumps(prompt_result.data.model_dump(), indent=2)}")
+                    # Add retry logic with exponential backoff
+                    max_retries = 3
+                    for attempt in range(max_retries):
+                        try:
+                            prompt_result = await prompt_crafter_agent.run(persona_data)
+                            print(f"Raw prompt crafter response: {prompt_result}")
+                            print(f"Prompt crafter response data:\n{json.dumps(prompt_result.data.model_dump(), indent=2)}")
+                            break
+                        except Exception as retry_error:
+                            print(f"Attempt {attempt + 1} failed: {str(retry_error)}")
+                            if attempt == max_retries - 1:
+                                raise
+                            await asyncio.sleep(2 ** attempt)  # Exponential backoff
                 except Exception as e:
                     print(f"\n=== Prompt Crafter Run Error for {persona.name} ===")
                     print(f"Exception type: {type(e)}")
                     print(f"Exception message: {str(e)}")
                     print("Full traceback:")
                     traceback.print_exc()
+                    
+                    # Add API response logging
+                    if hasattr(e, 'response'):
+                        print(f"API Response Status: {e.response.status_code}")
+                        print(f"API Response Content: {e.response.content}")
                     raise
                 
                 persona.system_prompt = prompt_result.data.system_prompt

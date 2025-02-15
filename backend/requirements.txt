@@ -24,7 +24,7 @@ langchain-core>=0.1.0
 pydantic==2.10.6
 pydantic-settings>=2.1.0
 pydantic_ai==0.0.24
-openai==1.60.1
+openai>=1.60.1
 
 # Tracking
 langfuse==2.57.12

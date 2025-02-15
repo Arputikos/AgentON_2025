@@ -545,8 +545,8 @@ async def websocket_endpoint(websocket: WebSocket):
         if stan_debaty:
             save_to_pdf(stan_debaty)
     print("Debate loop ended")
-    exit(0)
-    
+
+
 @app.get("/get_pdf/{debate_id}")
 async def get_pdf(debate_id: str):
     """

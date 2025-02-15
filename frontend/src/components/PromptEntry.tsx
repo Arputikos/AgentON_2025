@@ -64,14 +64,32 @@ export default function Home() {
       </header>
       
       <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-3xl">
-        <div className="flex items-center justify-center mb-8">
-          <Sparkles className="w-8 h-8 sm:w-12 sm:h-12 text-purple-500 mr-3" />
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-700">Debate Arena</h1>
+        <div className="mb-8 text-center">
+          <div className="flex items-center justify-center mb-8">
+            <Sparkles className="w-8 h-8 sm:w-12 sm:h-12 text-purple-500 mr-3" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-700">Debate Arena</h1>
+          </div>
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4">
+            Debate Arena is the winning project at the AgentOn 2025 hackathon! 🏆
+          </p>
+          <p className="text-base sm:text-lg text-gray-600 mb-6 max-w-2xl mx-auto leading-relaxed">
+            Our team consists of AI technology experts. If you need professionals to bring your projects to life, contact us!
+            We’d be happy to discuss a collaboration 😊
+          </p>
+          <div className="flex items-center justify-center gap-2 text-base sm:text-lg md:text-xl text-gray-700 font-medium">
+            <span>Learn more about us on the website</span>
+            <Link 
+              href="/contact"
+              className="font-bold text-purple-600 hover:text-purple-800 transition-colors underline"
+            >
+              Contact
+            </Link>
+          </div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className='p-0'>
-            <label htmlFor="prompt" className="block text-base sm:text-lg md:text-2xl font-medium text-gray-700 mb-3 p-1">
-              Enter your debate topic
+            <label htmlFor="prompt" className="block text-base sm:text-lg md:text-xl font-medium text-gray-700 mb-3 p-1">
+              Enter your debate topic:
             </label>
             <textarea
               id="prompt"
@@ -84,7 +102,7 @@ export default function Home() {
             />
           </div>
           <label htmlFor="prompt" className="block text-sm sm:text-base md:text-lg font-medium text-gray-700 mb-3 p-1">
-              🗝️ Enter API key (Deepseek, OpenAI or Anthropic)
+              🗝️ Enter API key (Deepseek, OpenAI or Anthropic):
             </label>
             <input
               type="password"
@@ -96,7 +114,7 @@ export default function Home() {
               disabled={isLoading}
             />
             <label htmlFor="prompt" className="block text-sm sm:text-base md:text-lg font-medium text-gray-700 mb-3 p-1">
-              🗝️ Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but better results with!)
+              🗝️ Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but better results with!):
             </label>
             <input
               type="password"

@@ -1,5 +1,5 @@
 import TeamMember from '@/components/TeamMember';
-import { Info, Calendar, ArrowLeft } from 'lucide-react';
+import { Mail, Calendar, ArrowLeft, Code2, Brain, Server, Blocks } from 'lucide-react';
 import Link from 'next/link';
 import krystianAvatar from '../../static/krystian_avatar.jpeg';
 import bartoszAvatar from '../../static/bartek_avatar.jpeg';
@@ -41,11 +41,38 @@ export default function ContactPage() {
     },
   ];
 
+  const technologies = [
+    {
+      icon: <Brain className="w-6 h-6 text-purple-500" />,
+      name: "AI Frameworks",
+      description: "Pydantic AI, Langgraph, Langchain",
+      details: "We use the latest AI frameworks to generate high-quality outputs."
+    },
+    {
+      icon: <Code2 className="w-6 h-6 text-purple-500" />,
+      name: "Frontend",
+      description: "Next.js 14, TypeScript, Tailwind CSS",
+      details: "Modern tech stack ensuring a smooth and responsive user experience."
+    },
+    {
+      icon: <Server className="w-6 h-6 text-purple-500" />,
+      name: "Backend",
+      description: "FastAPI, Python, WebSocket",
+      details: "Efficient backend enabling real-time communication and parallel processing."  
+    },
+    {
+      icon: <Blocks className="w-6 h-6 text-purple-500" />,
+      name: "Infrastructure",
+      description: "Docker, Vercel, VPS",
+      details: "Scalable infrastructure ensuring reliable application operation."
+    }
+  ];
+
   return (
-    <div className="min-h-screen w-full bg-white">
-      <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+    <div className="h-screen w-full bg-white overflow-y-auto">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
         {/* Back Navigation */}
-        <div className="mb-6">
+        <div className="mb-4">
           <Link 
             href="/" 
             className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
@@ -56,37 +83,67 @@ export default function ContactPage() {
         </div>
 
         {/* Contact Section */}
-        <div className="bg-gray-50 rounded-lg p-6">
+        <div className="bg-gray-50 rounded-lg p-6 shadow-sm">
           <h2 className="text-2xl font-bold mb-4 text-gray-900">
             Contact Us
           </h2>
-          <p className="text-lg text-gray-600 mb-6">
+          <p className="text-base text-gray-600 mb-6 leading-relaxed">
             We're passionate about advancing AI technology through meaningful collaboration.
             Whether you have a project idea or want to contribute to our existing work, we'd love to hear from you.
-            Schedule a call with us using the link below or reach out to us via email.
           </p>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Info className="w-5 h-5 text-gray-500" />
-              <a href="mailto:debate.arena.home@gmail.com" className="hover:text-purple-600 transition-colors">
+          <p className="text-base text-gray-600 mb-2 leading-relaxed font-bold">
+            You can schedule a call with us or reach out via email.
+          </p>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-gray-600 group">
+              <Mail className="w-6 h-6 text-purple-500" />
+              <a 
+                href="mailto:debate.arena.home@gmail.com" 
+                className="text-purple-600 hover:text-purple-700 transition-colors font-medium"
+              >
                 debate.arena.home@gmail.com
               </a>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-5 h-5 text-gray-500" />
-              <a href="https://calendly.com/debate-arena-home/30min" className="hover:text-purple-600 transition-colors">
+            <div className="flex items-center gap-3 text-gray-600 group">
+              <Calendar className="w-6 h-6 text-purple-500" />
+              <a 
+                href="https://calendly.com/debate-arena-home/30min" 
+                className="text-purple-600 hover:text-purple-700 transition-colors font-medium"
+              >
                 Schedule a meeting
               </a>
             </div>
           </div>
         </div>
 
-        {/* Team Section */}
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-2xl font-bold mb-4 text-gray-900">
-            Our Team
+        {/* Technologies Section */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h2 className="text-xl font-bold mb-3 text-gray-900">
+            Technologies:
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <p className="text-base text-gray-600 mb-4">
+            Debate Arena was built using the latest technologies, ensuring high performance, reliable outputs and scalability.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {technologies.map((tech, index) => (
+              <div key={index} className="bg-white rounded-lg p-3 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-2 mb-2">
+                  {tech.icon}
+                  <h3 className="font-semibold text-base text-gray-900">{tech.name}</h3>
+                </div>
+                <p className="text-purple-600 font-medium text-sm mb-1">{tech.description}</p>
+                <p className="text-gray-600 text-xs">{tech.details}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Team Section */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h2 className="text-xl font-bold mb-3 text-gray-900">
+            Meet our Team:
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {teamMembers.map((member, index) => (
               <TeamMember key={index} {...member} />
             ))}

@@ -225,8 +225,10 @@ async def websocket_endpoint(websocket: WebSocket):
         # Load debate configuration and prompt
         with open(prompt_file) as f:
             prompt_data = json.load(f)
-            topic: str = prompt_data.get("prompt")            
-            extrapolated_prompt: str = prompt_data.get("enriched_data", {}).get("enriched_input", "")
+            topic: str = prompt_data.get("prompt") 
+            enriched_data = prompt_data.get("enriched_data", {}).get("enriched_input", "")
+            layered_scope = prompt_data.get("enriched_data", {}).get("layered_scope", "")
+            extrapolated_prompt: str = f"**Enriched prompt**\n{enriched_data}\n\n**Layered scope**\n{layered_scope}"
             
         with open(config_file) as f:
             config_data = json.load(f)

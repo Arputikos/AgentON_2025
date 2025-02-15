@@ -1,15 +1,18 @@
 from datetime import datetime
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 import uvicorn
-from src.api import add_api_key_middleware, add_rate_limiter
-from src.encryption import decrypt
-from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS, ExtrapolatedPrompt, DebateState, Statement, DebateStateHelper
 from pydantic_ai import Agent
 from datetime import datetime
-from src.config import settings as global_settings
 import copy
+from markdown_pdf import MarkdownPdf, Section
 
+# Local imports
+from src.api import add_api_key_middleware, add_rate_limiter
+from src.encryption import decrypt
+from src.debate.models import DebateConfig, PromptRequest, Persona, DEFAULT_PERSONAS,  DebateState, Statement, DebateStateHelper
+from src.config import settings as global_settings
 # prompts
 from src.ai_model import get_ai_model, set_ai_api_key, set_exa_api_key
 from src.prompts.simple_context_prompt import context_prompt
@@ -29,8 +32,8 @@ from pathlib import Path
 import uuid
 from typing import List
 import random
-from fastapi import HTTPException
 import traceback
+import asyncio
 
 app = FastAPI()
 
@@ -50,6 +53,71 @@ add_rate_limiter(app)
 # Create output directory if it doesn't exist
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+
+MD_DIR = Path("md")
+MD_DIR.mkdir(exist_ok=True)
+
+def save_to_pdf(stan_debaty: DebateState) -> Path:
+    """
+    Save the debate state directly to a PDF file.
+    
+    Args:
+        stan_debaty: DebateState object containing the debate information
+        extrapolated_prompt: Dictionary containing the enriched prompt data
+        
+    Returns:
+        Path: Path to the generated PDF file
+    """
+    # Generate file paths
+    pdf_path = MD_DIR / f"debate_{stan_debaty['debate_id']}.pdf"
+    md_path = MD_DIR / f"debate_{stan_debaty['debate_id']}.md"
+
+    # Initialize markdown content with extrapolated prompt details
+    md_header = [
+        "# Debate Arena",
+        f"\n## Original Prompt",
+        f"{stan_debaty['topic']}",
+        f"\n## Enriched Prompt",
+        f"{extrapolated_prompt.get('topic', stan_debaty['topic'])}",
+        f"\n## Context",
+        f"{extrapolated_prompt.get('context', 'No additional context provided')}"
+    ]
+
+    md_content = ["\n## Debate Content\n"]
+
+    # Create lookup dictionary for personas
+    persona_lookup = {p.uuid: p.name for p in stan_debaty['participants']}
+
+    # Add each statement with speaker attribution
+    for statement in stan_debaty['conversation_history']:
+        speaker_name = persona_lookup.get(statement.persona_uuid, "Unknown Speaker")
+        md_content.extend([
+            f"### {speaker_name}",
+            f"{statement.content}\n"
+        ])
+
+    # Join all content with newlines
+    markdown_content = "\n".join(md_header) + "\n".join(md_content)
+
+    # Save markdown content to file first
+    with open(md_path, 'w', encoding='utf-8') as f:
+        f.write(markdown_content)
+
+    # Convert markdown to PDF using markdown_pdf
+    pdfmaker = MarkdownPdf()
+    header_text = "\n".join(md_header)
+    pdfmaker.add_section(Section(header_text))
+    content_text = "\n".join(md_content)
+    pdfmaker.add_section(Section(content_text))
+
+    # Set metadata
+    pdfmaker.meta["title"] = f"Debate Arena, topic: {stan_debaty['topic']}"
+
+    # Save the file
+    pdfmaker.save(pdf_path)
+
+    return pdf_path
 
 @app.post("/enter-debate")
 async def process_prompt(request: PromptRequest):
@@ -118,6 +186,9 @@ async def process_prompt(request: PromptRequest):
 @app.websocket("/debate")
 async def websocket_endpoint(websocket: WebSocket):
     print("New WebSocket connection attempt...")
+    stan_debaty = None
+    debate_id = ""
+    extrapolated_prompt = ""
     try:
         await websocket.accept()
         print("WebSocket connection accepted")
@@ -446,7 +517,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
             
             commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.")
-                
+
+            final_synthesis: Statement = Statement(
+                uuid=str(uuid.uuid4()),
+                content=get_summary(commentator_result.data),
+                persona_uuid=str(uuid.uuid4()),
+                timestamp=datetime.now()
+            )
+
+            stan_debaty["conversation_history"].append(final_synthesis)
+
             await websocket.send_json({
                 "type": "final_message",
                 "message": "Final synthesis generated",
@@ -465,6 +545,27 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         if not websocket.client_state.DISCONNECTED:
             await websocket.close()
+        if stan_debaty:
+            save_to_pdf(stan_debaty)
 
+@app.get("/get_pdf/{debate_id}")
+async def get_pdf(debate_id: str):
+    """
+    Return PDF file of the debate.
+    """
+    pdf_path = MD_DIR / f"debate_{debate_id}.pdf"
+
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Debate PDF not found")
+
+    try:
+        return FileResponse(
+            pdf_path,
+            media_type="application/pdf",
+            filename=f"debate_{debate_id}.pdf"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error serving PDF: {str(e)}")
+    
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

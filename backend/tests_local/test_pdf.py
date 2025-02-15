@@ -57,7 +57,7 @@ def test_save_to_pdf():
     )
 
     # Call save_to_pdf
-    pdf_path = save_to_pdf(test_debate_state, ex_prompt)
+    pdf_path = save_to_pdf(test_debate_state)
 
     # Assert PDF file was created
     assert pdf_path.exists()

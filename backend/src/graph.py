@@ -87,10 +87,21 @@ async def summarizer(state: DebateState) -> Command:
         model=model,
         system_prompt=commentator_prompt,
         deps_type=ExtrapolatedPrompt,
-        result_type=CommentatorOutput  # or your specific CommentatorOutput type
+        result_type=CommentatorOutput
     )
     
-    summary = await commentator_agent.run(formatted_history, deps=state["extrapolated_prompt"])
+    context = f"""Round {state.get('round_number', 1)}
+Topic: {state['topic']}
+
+Recent conversation:
+{formatted_history}
+
+Analyze the latest developments in this debate round, focusing on:
+1. New arguments or perspectives introduced
+2. Key points of agreement or disagreement
+3. The evolution of the discussion from previous rounds"""
+
+    summary = await commentator_agent.run(context, deps=state["extrapolated_prompt"])
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
@@ -107,7 +118,6 @@ async def summarizer(state: DebateState) -> Command:
         update={"conversation_history": [statement]},
         goto="coordinator"
     )
-
 
 async def coordinator(state: DebateState) -> Command:
     current_speaker_no = int(state["current_speaker_uuid"])

@@ -114,7 +114,7 @@ export default function Home() {
               disabled={isLoading}
             />
             <label htmlFor="prompt" className="block text-sm sm:text-base md:text-lg font-medium text-gray-700 mb-3 p-1">
-              🗝️ Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but better results with!):
+              🗝️ Enter <Link href="https://exa.ai/" className='text-blue-700 font-bold'>EXA Search</Link> API key (optional - but with it you get better results!):
             </label>
             <input
               type="password"

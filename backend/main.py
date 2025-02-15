@@ -63,8 +63,7 @@ def save_to_pdf(stan_debaty: DebateState) -> Path:
     Save the debate state directly to a PDF file.
     
     Args:
-        stan_debaty: DebateState object containing the debate information
-        extrapolated_prompt: Dictionary containing the enriched prompt data
+        stan_debaty: DebateState object containing the debate information        
         
     Returns:
         Path: Path to the generated PDF file
@@ -77,14 +76,30 @@ def save_to_pdf(stan_debaty: DebateState) -> Path:
     md_header = [
         "# Debate Arena",
         f"\n## Debate Topic",
-        f"{stan_debaty['topic']}"
+        f"{stan_debaty['topic']}",
+        f"\n### Enriched Topic",
+        f"{stan_debaty['extrapolated_prompt']}",
+        f"\n## Participants",
     ]
 
-    md_content = ["\n## Debate Content\n"]
+    for persona in stan_debaty['participants']:
+        md_header.extend([
+            f"### {persona.name}\n",
+            f"**Title**: {persona.title or 'N/A'}\n",
+            f"**Description**: {persona.description}\n",
+            f"**Personality**: {persona.personality or 'N/A'}\n",
+            f"**Expertise**: {', '.join(persona.expertise) if persona.expertise else 'N/A'}\n",
+            f"**Attitude**: {persona.attitude or 'N/A'}\n",
+            f"**Background**: {persona.background or 'N/A'}\n",
+            f"**Debate Style**: {persona.debate_style or 'N/A'}\n",
+            "\n"
+        ])
 
     # Create lookup dictionary for personas
     persona_lookup = {p.uuid: p.name for p in stan_debaty['participants']}
     persona_lookup["Debate Summary"] = "Debate Summary"
+
+    md_content = ["\n## Debate Content\n"]
 
     # Add each statement with speaker attribution
     for statement in stan_debaty['conversation_history']:
@@ -185,6 +200,7 @@ async def websocket_endpoint(websocket: WebSocket):
     print("New WebSocket connection attempt...")
     stan_debaty = None
     debate_id = ""
+    topic = ""
     extrapolated_prompt = ""
     try:
         await websocket.accept()
@@ -225,15 +241,19 @@ async def websocket_endpoint(websocket: WebSocket):
         # Load debate configuration and prompt
         with open(prompt_file) as f:
             prompt_data = json.load(f)
-            extrapolated_prompt = prompt_data.get("prompt")
+            topic: str = prompt_data.get("prompt") 
+            enriched_data = prompt_data.get("enriched_data", {}).get("enriched_input", "")
+            layered_scope = prompt_data.get("enriched_data", {}).get("layered_scope", "")
+            extrapolated_prompt: str = f"**Enriched prompt**\n{enriched_data}\n\n**Layered scope**\n{layered_scope}"
             
         with open(config_file) as f:
             config_data = json.load(f)
             debate_config = DebateConfig(**config_data)
         
         language = debate_config.language
-            
-        print(f"Loaded debate prompt: {extrapolated_prompt}")
+
+        print(f"Loaded debate prompt: {topic}")    
+        print(f"Loaded enriched prompt: {extrapolated_prompt}")
         print(f"Loaded debate config: {debate_config}")
 
         model = get_ai_model(debate_id)
@@ -254,7 +274,7 @@ async def websocket_endpoint(websocket: WebSocket):
         )
         
         # Generate personas
-        personas_result = await rpea_agent.run(extrapolated_prompt)
+        personas_result = await rpea_agent.run(f"Describe participants for the debate. Follow the instructions in the debate topic. Debate topic: {topic} \n\n Enriched prompt: {extrapolated_prompt}")
         # full list of personas, including commentator, coordinator, moderator and opening; RPEAOutput object
         personas_full_list_RPEA = personas_result.data
         # debate_personas is the List of actual debate participants
@@ -347,7 +367,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         print("Opening")
 
-        opening_user_prompt = f"Debate topic: {extrapolated_prompt} \nPersonas: {persona_full_list} \nWhat is the opening for this debate?"
+        opening_user_prompt = f"Debate topic: {topic} \n Enriched prompt: {extrapolated_prompt} \nPersonas: {persona_full_list} \nWhat is the opening for this debate?"
         opening_result = await opening_agent.run(opening_user_prompt) 
         print(f"Opening: {opening_result.data.opening}") 
         print(f"topic_introduction: {opening_result.data.topic_introduction}") 
@@ -364,7 +384,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_json(reply)
 
         stan_debaty = DebateState(
-            topic=extrapolated_prompt,
+            topic=topic,
             participants=personas_full_list_RPEA.personas,
             language=language,
             current_speaker_uuid="0",
@@ -508,12 +528,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 result_type=CommentatorOutput,
                 retries=3
             )
-
-            @commentator_agent.system_prompt()
-            def current_state_of_debate() -> str:
-                return DebateStateHelper.get_total_content_of_the_debate(stan_debaty)
             
-            commentator_result = await commentator_agent.run("Provide the Final Synthesis. Summarize the debate.")
+            final_synthesis_prompt = f""" You are the final commentator of the debate. Provide the Final Synthesis. 
+            Debate topic: {topic} 
+            Enriched prompt: {extrapolated_prompt}             
+            History of conversation: {DebateStateHelper.print_conversation_history(stan_debaty)}"""
+            commentator_result = await commentator_agent.run(final_synthesis_prompt)
 
             final_synthesis: Statement = Statement(
                 uuid=str(uuid.uuid4()),

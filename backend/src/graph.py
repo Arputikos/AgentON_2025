@@ -23,9 +23,6 @@ from pydantic import BaseModel, Field
 from src.tools import websearch
 from src.debate.const_personas import COMMENTATOR_PERSONA, COORDINATOR_PERSONA
 
-# Personas
-# debate_personas = [COMMENTATOR_PERSONA, COORDINATOR_PERSONA]
-
 class DebateContext(BaseModel):
     topic: str
     participants: List[dict]
@@ -85,12 +82,23 @@ async def summarizer(state: DebateState) -> Command:
     
     commentator_agent = Agent(
         model=model,
-        system_prompt=commentator_prompt,
-        deps_type=ExtrapolatedPrompt,
-        result_type=CommentatorOutput  # or your specific CommentatorOutput type
+        system_prompt=commentator_prompt,        
+        result_type=CommentatorOutput
     )
     
-    summary = await commentator_agent.run(formatted_history, deps=state["extrapolated_prompt"])
+    context = f"""Round {state.get('round_number', 1)}
+Topic: {state['topic']}
+Extended prompt: {state['extrapolated_prompt']}
+
+Recent conversation:
+{formatted_history}
+
+Analyze the latest developments in this debate round, focusing on:
+1. New arguments or perspectives introduced
+2. Key points of agreement or disagreement
+3. The evolution of the discussion from previous rounds"""
+
+    summary = await commentator_agent.run(context)
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
@@ -98,21 +106,23 @@ async def summarizer(state: DebateState) -> Command:
             persona_uuid=str(COMMENTATOR_PERSONA.uuid),
             timestamp=datetime.now()
     )
-    if current_speaker_no >= len(state["participants_queue"]):
+    
+    if current_speaker_no >= len(state["participants_queue"]) - 1:
+        print("All participants have spoken, ending debate round")
         return Command(
             update={"conversation_history": [statement]},
             goto=END
         )    
+    
     return Command(
         update={"conversation_history": [statement]},
         goto="coordinator"
     )
 
-
 async def coordinator(state: DebateState) -> Command:
     current_speaker_no = int(state["current_speaker_uuid"])
     if current_speaker_no >= len(state["participants_queue"]):
-        print("All participants have spoken, skipping coordinator, ending round")
+        print("All participants have spoken, ending debate round")
         return Command(goto=END)
     
     conversation_history = state["conversation_history"]
@@ -122,7 +132,7 @@ async def coordinator(state: DebateState) -> Command:
         raise ValueError(f"No persona found with UUID: {next_speaker_uuid}")
     next_speaker_name = next_speaker.name
     context_conversation = format_conversation(conversation_history)
-    context = f'<task>Lead the debate. Always react to last message in the conversation! Direct your next question to {next_speaker_name}.</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
+    context = f'<task>Lead the debate. Always react to last message in the conversation! Direct your next question to {next_speaker_name}.</task><context>Original topic of the debate: \n# **{state["topic"]}**\n\n Extended prompt: \n# **{state["extrapolated_prompt"]}**\n\n History of conversation: ```{context_conversation}.</context>```'
 
     model = get_ai_model(state["debate_id"])
     if model is None:

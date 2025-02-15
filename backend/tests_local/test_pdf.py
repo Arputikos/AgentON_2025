@@ -34,12 +34,7 @@ def test_save_to_pdf():
         timestamp=datetime.now()
     )
 
-    ex_prompt = ExtrapolatedPrompt(
-            prompt="test_prompt",            
-            topic="test topic",
-            context="test context",
-            suggested_participants=["Tester"]
-        )
+    extrapolated_prompt = "**Test enriched prompt.** \n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."        
 
     # Create test debate state
     test_debate_state = DebateState(
@@ -52,7 +47,7 @@ def test_save_to_pdf():
         comments_history=[],
         is_debate_finished=True,
         participants_queue=[],
-        extrapolated_prompt=ex_prompt,
+        extrapolated_prompt=extrapolated_prompt,
         debate_id="test-debate-1"
     )
 

@@ -127,7 +127,7 @@ export default function DebateRoom({ debateId }: DebateRoomProps) {
     .filter(msg => 
       msg.sender === "Commentator" || 
       msg.sender === "Opening commentator" || 
-      msg.sender === "Closing Statement"
+      msg.sender === "Debate Summary"
     )
     .pop();
 

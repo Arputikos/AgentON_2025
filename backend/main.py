@@ -77,11 +77,7 @@ def save_to_pdf(stan_debaty: DebateState) -> Path:
     md_header = [
         "# Debate Arena",
         f"\n## Original Prompt",
-        f"{stan_debaty['topic']}",
-        f"\n## Enriched Prompt",
-        f"{extrapolated_prompt.get('topic', stan_debaty['topic'])}",
-        f"\n## Context",
-        f"{extrapolated_prompt.get('context', 'No additional context provided')}"
+        f"{stan_debaty['topic']}"
     ]
 
     md_content = ["\n## Debate Content\n"]

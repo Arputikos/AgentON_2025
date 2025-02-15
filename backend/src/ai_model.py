@@ -71,6 +71,6 @@ def get_ai_model(debate_id: str):
         print("Loading Deepseek LLM Model")
         return OpenAIModel(
             'deepseek-chat',
-            base_url='https://api.deepseek.com/v1',
+            base_url='https://api.deepseek.com',
             api_key=key
         )

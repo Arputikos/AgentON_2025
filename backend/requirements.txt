@@ -13,7 +13,7 @@ langchain-openai>=0.0.5
 langchain-core>=0.1.0
 pydantic==2.10.6
 pydantic-settings>=2.1.0
-pydantic_ai==0.0.20
+pydantic_ai==0.0.24
 langfuse==2.57.12
 exa_py==1.7.1
 trafilatura>=0.10.0
@@ -26,3 +26,4 @@ slowapi==0.1.9
 limits==4.0.1
 deprecated==1.2.18
 pycryptodome==3.21.0
+mdpdf==0.0.18

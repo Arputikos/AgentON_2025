@@ -40,6 +40,11 @@ class ParticipantResponse(BaseModel):
     response: str = Field(description="The participant's response in the debate")
     sources: Optional[List[str]] = Field(default=None, description="Sources used in the response")
 
+
+def flatten_dict(d: dict) -> str:
+    """Flatten a dictionary into a string"""
+    return "\n".join(f"{k}: {v}" for k, v in d.items())
+
 def get_summary(summary: CommentatorOutput) -> str:
     return f"Key themes: {summary.key_themes}\n\nActionable takeaways: {summary.actionable_takeaways}"
 
@@ -90,7 +95,12 @@ async def summarizer(state: DebateState) -> Command:
         result_type=CommentatorOutput  # or your specific CommentatorOutput type
     )
     
-    summary = await commentator_agent.run(formatted_history, deps=state["extrapolated_prompt"])
+    try:
+        summary = await commentator_agent.run(formatted_history, deps=state["extrapolated_prompt"])
+    except Exception as e:
+        print(f"Summarizer agent error: {str(e)}")
+        print(f"Context being sent: {state['extrapolated_prompt']}")
+        raise  # Re-raise to maintain original error handling
   
     statement : Statement = Statement(
             uuid=str(uuid4()),
@@ -122,19 +132,29 @@ async def coordinator(state: DebateState) -> Command:
         raise ValueError(f"No persona found with UUID: {next_speaker_uuid}")
     next_speaker_name = next_speaker.name
     context_conversation = format_conversation(conversation_history)
-    context = f'<task>Lead the debate. Always react to last message in the conversation! Direct your next question to {next_speaker_name}.</task><context>Original topic of the debate: \n# **{state["extrapolated_prompt"]}**\n\n  History of conversation: ```{context_conversation}.</context>```'
+
+    context = f'<task>Lead the debate. Always react to last message in the conversation! Direct your next question to {next_speaker_name}.</task><context>History of conversation: ```{context_conversation}.</context>```'
 
     model = get_ai_model(state["debate_id"])
     if model is None:
         raise ValueError(f"Cannot load LLM model for debate id: ", state["debate_id"])
+    if state["extrapolated_prompt"] is None:
+        raise ValueError("Extrapolated prompt is missing")
     
     coordinator_agent = Agent(
         model=model,
+        deps_type=ExtrapolatedPrompt,
         system_prompt=coordinator_prompt,        
         result_type=CoordinatorOutput
     )
     
-    coordinator_output = await coordinator_agent.run(context)
+    try:
+        coordinator_output = await coordinator_agent.run(context, deps=state["extrapolated_prompt"])
+    except Exception as e:
+        print(f"Coordinator agent error: {str(e)}")
+        print(f"Context being sent: {context}")
+        raise  # Re-raise to maintain original error handling
+
     question = coordinator_output.data.question
     justification = coordinator_output.data.justification
 
@@ -222,10 +242,15 @@ async def participant_agent(state: DebateState):
         topic=state["topic"]
     )
     
-    agent_response = await agent.run(
+    try:
+        agent_response = await agent.run(
         f"You are now speaking in the debate. Answer to the last question: {last_statement.content}. {search_tool_marker}",
         deps=context
-    )
+        )
+    except Exception as e:
+        print(f"Participant agent error: {str(e)}")
+        print(f"Context being sent: {context}")
+        raise  # Re-raise to maintain original error handling
 
     statement: Statement = Statement(
         uuid=str(uuid4()),

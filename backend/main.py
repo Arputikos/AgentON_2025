@@ -24,7 +24,7 @@ from src.prompts.moderator import moderator_prompt
 from src.prompts.commentator import commentator_prompt
 from src.debate.prompts_models import ContextOutput, RPEAOutput, PromptCrafterOutput, OpeningOutput, ModeratorOutput, CommentatorOutput
 
-from src.graph import graph, get_persona_by_uuid, get_summary
+from src.graph import graph, get_persona_by_uuid, get_summary, flatten_dict
 from src.debate.const_personas import CONST_PERSONAS
 from langgraph.errors import GraphRecursionError
 
@@ -228,8 +228,8 @@ async def websocket_endpoint(websocket: WebSocket):
         with open(prompt_file) as f:
             prompt_data = json.load(f)
             prompt = prompt_data.get("prompt")
-            extrapolated_prompt = prompt_data.get("enriched_data")
-            flat_extrapolated_prompt = "\n".join(f"{key}: {value}" for key, value in extrapolated_prompt.items())
+            extrapolated_prompt: dict = prompt_data.get("enriched_data")
+            flat_extrapolated_prompt = flatten_dict(extrapolated_prompt)
             
         with open(config_file) as f:
             config_data = json.load(f)
@@ -260,12 +260,25 @@ async def websocket_endpoint(websocket: WebSocket):
         print("Prompt: ", prompt)
         print("Extrapolated prompt: ", extrapolated_prompt)
 
-        # Generate personas
-        personas_result = await rpea_agent.run(flat_extrapolated_prompt)
-        # full list of personas, including commentator, coordinator, moderator and opening; RPEAOutput object
-        personas_full_list_RPEA = personas_result.data
-        # debate_personas is the List of actual debate participants
-        debate_personas = personas_full_list_RPEA.personas.copy()
+        # Add before RPEA agent execution
+        print("\n=== Starting RPEA Agent ===")
+        print(f"Flat extrapolated prompt being sent to RPEA:\n{flat_extrapolated_prompt}")
+
+        try:
+            # Generate personas
+            personas_result = await rpea_agent.run(flat_extrapolated_prompt)
+            print(f"\nRPEA Agent response:\n{json.dumps(personas_result.data.model_dump(), indent=2)}")
+            # full list of personas, including commentator, coordinator, moderator and opening; RPEAOutput object
+            personas_full_list_RPEA = personas_result.data
+            # debate_personas is the List of actual debate participants
+            debate_personas = personas_full_list_RPEA.personas.copy()
+        except Exception as e:
+            print("\n=== RPEA Agent Error ===")
+            print(f"Exception type: {type(e)}")
+            print(f"Exception message: {str(e)}")
+            print("Full traceback:")
+            traceback.print_exc()
+            raise
 
         ###
         ### SEND THE PARTICIPANTS TO THE CLIENT 
@@ -306,30 +319,75 @@ async def websocket_endpoint(websocket: WebSocket):
         personas_full_list_RPEA.personas.extend(CONST_PERSONAS) 
         
         # SETUP PROMOTOW DLA AGENTOW 
-        # Create the Prompt Crafter Agent
-        prompt_crafter_agent = Agent(
-            model=model,
-            system_prompt=prompt_crafter_prompt,
-            result_type=PromptCrafterOutput,
-            retries=3
-        )
+        # Add before Prompt Crafter execution
+        print("\n=== Starting Prompt Crafter Agent ===")
+        print(f"Model being used: {model.model_name}")
+        print(f"Prompt crafter system prompt: {prompt_crafter_prompt}")
+
+        # Create the Prompt Crafter Agent with logging
+        try:
+            prompt_crafter_agent = Agent(
+                model=model,
+                system_prompt=prompt_crafter_prompt,
+                result_type=PromptCrafterOutput,
+                retries=3
+            )
+            print("Prompt crafter agent created successfully")
+        except Exception as e:
+            print("\n=== Prompt Crafter Agent Creation Error ===")
+            print(f"Exception type: {type(e)}")
+            print(f"Exception message: {str(e)}")
+            print("Full traceback:")
+            traceback.print_exc()
+            raise
         
-        # Generate system prompts for each debate persona - after each persona is created stream the persona to the client
+        # Generate system prompts for each debate persona
         for persona in debate_personas:
-            persona_data = persona.print_persona_as_json()
-            print(f"Crafting persona: {persona.name}")
-            prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
-            persona.system_prompt = prompt_result.data.system_prompt
+            try:
+                print(f"\n=== Starting prompt craft for {persona.name} ===")
+                persona_data = persona.print_persona_as_json()
+                print(f"Persona data being sent to prompt crafter:\n{json.dumps(persona_data, indent=2)}")
+                
+                try:
+                    prompt_result = await prompt_crafter_agent.run(json.dumps(persona_data))
+                    print(f"Raw prompt crafter response: {prompt_result}")
+                    print(f"Prompt crafter response data:\n{json.dumps(prompt_result.data.model_dump(), indent=2)}")
+                except Exception as e:
+                    print(f"\n=== Prompt Crafter Run Error for {persona.name} ===")
+                    print(f"Exception type: {type(e)}")
+                    print(f"Exception message: {str(e)}")
+                    print("Full traceback:")
+                    traceback.print_exc()
+                    raise
+                
+                persona.system_prompt = prompt_result.data.system_prompt
+                
+                # Log the websocket message before sending
+                try:
+                    persona_message = {
+                        "type": "persona",
+                        "data": persona.model_dump()
+                    }
+                    print(f"Prepared websocket message:\n{json.dumps(persona_message, indent=2)}")
+                    
+                    await websocket.send_json(persona_message)
+                    print(f"Successfully sent persona: {persona.name}")
+                except Exception as e:
+                    print(f"\n=== WebSocket Send Error for {persona.name} ===")
+                    print(f"Exception type: {type(e)}")
+                    print(f"Exception message: {str(e)}")
+                    print("Full traceback:")
+                    traceback.print_exc()
+                    raise
 
-            await websocket.send_json({
-                "type": "persona",
-                "data": persona.model_dump()
-            })
-
-            print(f"Sent persona: {persona.name}")
-            print(f"Persona system prompt: {persona.system_prompt}")
+            except Exception as e:
+                print(f"\n=== Overall Error for {persona.name} ===")
+                print(f"Exception type: {type(e)}")
+                print(f"Exception message: {str(e)}")
+                print("Full traceback:")
+                traceback.print_exc()
+                raise
         
-
         # Send completion message
         await websocket.send_json({
             "type": "setup_complete",

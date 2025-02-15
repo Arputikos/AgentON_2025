@@ -1,4 +1,4 @@
-import { Mic } from 'lucide-react';
+import { Mic, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createMessageStream } from '@/lib/utils';
 import ChatMessage from './ChatMessage';
@@ -50,7 +50,7 @@ export default function ModeratorCard({ message }: ModeratorCardProps) {
       </div>
 
       {/* Messages container */}
-      <div className="border-t py-4 sm:py-6 md:py-4 overflow-y-auto h-[calc(100%-8rem)]">
+      <div className="border-t py-4 sm:py-6 md:py-4 overflow-y-auto h-[calc(100%-12rem)]">
         <div className="space-y-3 sm:space-y-4 md:space-y-3 p-2 sm:p-4 md:p-3">
           {message && (
             <ChatMessage
@@ -63,6 +63,14 @@ export default function ModeratorCard({ message }: ModeratorCardProps) {
             />
           )}
         </div>
+      </div>
+      
+      {/* Download button */}
+      <div className="border-t mt-auto p-4 flex justify-center">
+        <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400 to-indigo-400 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity duration-200">
+          <FileText className="w-5 h-5" />
+          Download Debate Summary
+        </button>
       </div>
     </div>
   );

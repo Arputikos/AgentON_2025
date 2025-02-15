@@ -206,8 +206,7 @@ async def participant_agent(state: DebateState):
                     )
                     results = await websearch(search_query)
                     return SearchToolResponse(web_contents=results)
-                except Exception as e:
-                    print(f"Error searching: {e}")
+                except Exception as e:                    
                     return SearchToolResponse(web_contents=[])
         else:
             print("Exa key not found - skipping search tool")

@@ -17,6 +17,10 @@ Debate Arena is an advanced multi-agent debate system using artificial intellige
 - Docker (optional)
 - Installation of required packages (see below)
 
+## Demo
+
+View the demo [here](https://www.youtube.com/watch?v=okRanKwCYro)
+
 ## Install and run locally
 
 1 Clone the repository:
@@ -112,6 +116,10 @@ Debate Arena to zaawansowany system wieloagentowy do prowadzenia debat, wykorzys
 - Node.js 20+
 - Docker (opcjonalnie)
 - instalacja wymaganych pakietów (patrz poniżej)
+
+## Demo
+
+Obejrzyj demo [tutaj](https://www.youtube.com/watch?v=okRanKwCYro)
 
 ## Instalacja i uruchomienie lokalne
 

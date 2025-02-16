@@ -2,6 +2,10 @@
 
 Multiagent debate system, where user gives a debate topic, event description and hints about participants. The system then generates a debate scenario with a set of participants, debate coordinator (blue hat persona) and a set monitor. .
 
+## Demo
+
+View the demo [here](https://www.youtube.com/watch?v=okRanKwCYro)
+
 ## Stack
 
 - Python 3.11

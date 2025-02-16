@@ -153,7 +153,7 @@ class Moderator(BaseModel):
 class DebateConfig(BaseModel):
     speakers: list[Persona]
     prompt: str
-
+    language: str
 # prompt od użytkownika
 class PromptRequest(BaseModel):
     prompt: str
@@ -187,19 +187,21 @@ class DebateState(TypedDict):
     """
     debate_id: str
     topic: str
+    language: str
     participants: List[Persona]
     current_speaker_uuid: str  # Current uuid of the speaker of the debate
-    round_number: int  # defaults handled in implementation, not type definition
+    round_number: int  # Add explicit int type here
     conversation_history: Annotated[List[Statement], operator.add]  # Conversation history of the debate
     comments_history: List[Comment]  # Comments history of the debate
     is_debate_finished: bool  # defaults handled in implementation, not type definition
     participants_queue: List[str]  # Queue of participants to speak
-    extrapolated_prompt: Optional[ExtrapolatedPrompt] 
+    extrapolated_prompt: str # Simplified - enriched prompt
 
 class DebateStateHelper:
     """
     Helper class for DebateState.
     """
+        
     @staticmethod
     def get_topic(state: DebateState) -> str:
         return state["topic"]
@@ -211,17 +213,26 @@ class DebateStateHelper:
     @staticmethod
     def print_conversation_history(state: DebateState) -> str:
         return "\n".join([f"{statement.timestamp} - {statement.persona_uuid}: {statement.content}" for statement in state["conversation_history"]])
+
+    @staticmethod
+    def get_count_of_conversation_history(state: DebateState) -> int:
+        return len(state["conversation_history"])
     
     @staticmethod
     def get_participants(state: DebateState) -> str:
         return "\n".join([f"{participant.name}" for participant in state["participants"]])
 
     @staticmethod
+    def get_language(state: DebateState) -> str:
+        return state["language"]
+    
+    @staticmethod
     def get_total_content_of_the_debate(state: DebateState) -> str:
         topic: str = DebateStateHelper.get_topic(state)
+        language: str = DebateStateHelper.get_language(state)
         participants = DebateStateHelper.get_participants(state)
         content = DebateStateHelper.get_content(state)
-        return f"Topic: {topic}\nParticipants: {participants}\nContent: {content}"
+        return f"Topic: {topic}\nLanguage: {language}\nParticipants: {participants}\nContent: {content}"
     
 # Tools
 class SearchQuery(BaseModel):

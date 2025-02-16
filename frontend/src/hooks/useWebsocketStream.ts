@@ -81,6 +81,7 @@ export function useWebsocketStream(debateId: string | null) {
         break;
 
       case 'message':
+        console.log('💬 Message received:', data.data);
         setStreamState(prev => {
           const matchingParticipant = prev.participants.find(p => 
             p.name === data.data.name
@@ -114,7 +115,7 @@ export function useWebsocketStream(debateId: string | null) {
             {
               id: '1234',
               content: data.commentator_result,
-              sender: "FINAL DEBATE RESULT",
+              sender: "Debate Summary",
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
               borderColor: '#000',
             }

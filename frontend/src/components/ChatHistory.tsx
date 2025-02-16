@@ -2,83 +2,47 @@ import ChatMessage from './ChatMessage';
 import { useEffect, useRef, useState } from 'react';
 import Loader from './Loader';
 import { createMessageStream } from '@/lib/utils';
+import { MessageSquare } from 'lucide-react';
 
-interface ChatHistoryProps {
-  messages: Array<{
-    id: string;
-    content: string;
-    sender: string;
-    timestamp?: string;
-    borderColor?: string;
-  }>;
-  debateFinished: boolean;
-  isVisible: boolean;
+interface Message {
+  id: string;
+  content: string;
+  sender: string;
+  timestamp?: string;
+  borderColor?: string;
 }
 
-export default function ChatHistory({ messages, debateFinished, isVisible }: ChatHistoryProps) {
+interface ChatHistoryProps {
+  messages: Message[];
+  debateFinished: boolean;
+  streamingMessages: {[key: string]: string};
+  displayedMessages: Message[];
+  messageQueue: Message[];
+  isStreaming: boolean;
+}
+
+export default function ChatHistory({ 
+  messages, 
+  debateFinished, 
+  streamingMessages,
+  displayedMessages,
+  messageQueue,
+  isStreaming 
+}: ChatHistoryProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [streamingMessages, setStreamingMessages] = useState<{[key: string]: string}>({});
-  const [displayedMessages, setDisplayedMessages] = useState<typeof messages>([]);
-  const [messageQueue, setMessageQueue] = useState<typeof messages>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
-
-  // Add incoming messages to queue only
-  useEffect(() => {
-    const newMessages = messages.filter(
-      msg => !messageQueue.some(qMsg => qMsg.id === msg.id) && 
-            !displayedMessages.some(dMsg => dMsg.id === msg.id)
-    );
-    
-    if (newMessages.length > 0) {
-      setMessageQueue(prev => [...prev, ...newMessages]);
-    }
-  }, [messages, messageQueue, displayedMessages]);
-
-  // Stream messages one by one
-  useEffect(() => {
-    const streamNextMessage = async () => {
-      if (messageQueue.length === 0 || isStreaming) return;
-
-      setIsStreaming(true);
-      const currentMessage = messageQueue[0];
-
-      try {
-        await createMessageStream(
-          currentMessage.content,
-          (currentText) => {
-            setStreamingMessages({
-              [currentMessage.id]: currentText
-            });
-          },
-          50 // 50ms delay
-        );
-
-        // After streaming completes, move message from queue to displayed
-        setDisplayedMessages(prev => [...prev, currentMessage]);
-        setMessageQueue(prev => prev.slice(1));
-        setStreamingMessages({});
-        setIsStreaming(false);
-      } catch (error) {
-        console.error('Streaming error:', error);
-        setIsStreaming(false);
-      }
-    };
-
-    streamNextMessage();
-  }, [messageQueue, isStreaming]);
-
-  // Add scroll to bottom effect
-  useEffect(() => {
-    //messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [displayedMessages, streamingMessages]);
 
   return (
-    <div className="h-full">
-      <div className="flex items-center space-x-4 mb-8">
-        <h3 className="font-semibold text-2xl">Debate History</h3>
+    <div className="h-full flex flex-col">
+      <div className="flex flex-col items-center mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <MessageSquare className="w-6 h-6 text-blue-500" />
+          <h3 className="font-semibold text-2xl">Debate History</h3>
+        </div>
+        <p className="text-sm text-gray-600">Complete record of the debate conversation</p>
       </div>
-      <div className="border-t py-6">
-        <div className="space-y-4 h-[calc(100%-8rem)] overflow-y-auto">
+
+      <div className="border-t py-4 sm:py-6 md:py-4 overflow-y-auto h-[calc(100%-8rem)]">
+        <div className="space-y-3 sm:space-y-4 md:space-y-3 p-2 sm:p-4 md:p-3">
           {displayedMessages.map((message) => (
             <ChatMessage
               key={message.id}
@@ -101,8 +65,8 @@ export default function ChatHistory({ messages, debateFinished, isVisible }: Cha
               <Loader size="lg" color="primary" />
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
+        <div ref={messagesEndRef} />
       </div>
     </div>
   );
